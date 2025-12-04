@@ -181,4 +181,55 @@
     .trip-body {
         grid-template-columns: 1fr;
     }
+
+    .trip-header {
+        padding: 1.5rem;
+    }
+
+    .header-content h1 {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .trip-details-page {
+        padding: 0 1rem 2rem;
+        padding-top: 90px;
+    }
+
+    .trip-header {
+        margin-bottom: 1.5rem;
+        border-radius: 12px;
+    }
+
+    .header-actions {
+        flex-direction: column;
+    }
+
+    .header-actions button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .tabs {
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+        -webkit-overflow-scrolling: touch;
+        gap: 0.5rem;
+    }
+
+    .tab-btn {
+        white-space: nowrap;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+    }
+
+    .section {
+        padding: 1rem;
+    }
+
+    .section h2 {
+        font-size: 1.2rem;
+    }
 }

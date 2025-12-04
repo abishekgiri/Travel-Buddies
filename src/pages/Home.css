@@ -385,33 +385,82 @@
 @media (max-width: 768px) {
     .hero-section {
         min-height: auto;
-        padding: 6rem 0 4rem;
+        padding: 8rem 0 4rem;
+        text-align: center;
+    }
+
+    .hero-title {
+        font-size: 2.8rem;
+        margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+        padding: 0 1rem;
+        margin-bottom: 2rem;
     }
 
     .hero-actions {
         flex-direction: column;
         align-items: stretch;
+        gap: 1rem;
+        padding: 0 1rem;
     }
 
     .btn-primary-large,
     .btn-secondary-large {
         justify-content: center;
+        width: 100%;
+        padding: 14px 20px;
+        font-size: 1rem;
     }
 
     .stats-row {
         gap: 1rem;
+        padding: 0 1rem;
     }
 
     .stat-card {
-        min-width: 120px;
-        padding: 1rem 1.5rem;
+        min-width: 45%;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+    }
+
+    .stat-number {
+        font-size: 1.8rem;
     }
 
     .features-section {
-        padding: 4rem 0;
+        padding: 4rem 1rem;
+    }
+
+    .section-title {
+        font-size: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .feature-card {
+        padding: 2rem 1.5rem;
     }
 
     .gradient-orb {
-        filter: blur(80px);
+        filter: blur(60px);
+        opacity: 0.2;
+    }
+
+    .orb-1 {
+        width: 300px;
+        height: 300px;
+    }
+
+    .orb-2 {
+        width: 250px;
+        height: 250px;
+    }
+
+    .orb-3 {
+        width: 200px;
+        height: 200px;
     }
 }

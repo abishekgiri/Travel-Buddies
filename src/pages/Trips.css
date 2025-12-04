@@ -236,13 +236,40 @@
     flex: 1;
 }
 
+@media (max-width: 1024px) {
+    .trips-grid {
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    }
+}
+
 @media (max-width: 768px) {
+    .trips-page {
+        padding-top: 90px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
     .trips-grid {
         grid-template-columns: 1fr;
+        gap: 1.5rem;
     }
 
     .trips-header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .trips-header h1 {
+        font-size: 2rem;
+    }
+
+    .trips-filters {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .trip-card {
+        border-radius: 16px;
     }
 }
