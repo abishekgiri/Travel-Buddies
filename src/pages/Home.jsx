@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import useMobile from '../hooks/useMobile';
 import RecommendedTrips from '../components/RecommendedTrips';
 import './Home.css';
 
@@ -22,6 +23,64 @@ const Home = () => {
         window.addEventListener('mousemove', handleMouseMove);
         return () => window.removeEventListener('mousemove', handleMouseMove);
     }, []);
+
+    const isMobile = useMobile();
+
+    if (isMobile) {
+        return (
+            <div className="home-page mobile-view" style={{ padding: '20px', paddingTop: '80px' }}>
+                <div className="mobile-header" style={{ marginBottom: '30px' }}>
+                    <h1 style={{ fontSize: '2rem', marginBottom: '10px' }}>Travel<br /><span className="text-gradient">Buddies</span></h1>
+                    <p style={{ color: 'var(--text-secondary)' }}>Your pocket travel companion.</p>
+                </div>
+
+                <div className="mobile-actions" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                    {user ? (
+                        <>
+                            <div className="glass" style={{ padding: '20px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
+                                    ✈️
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0 }}>Plan a Trip</h3>
+                                    <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Start a new adventure</p>
+                                </div>
+                            </div>
+                            <Link to="/find-travelers" className="btn-primary" style={{ textAlign: 'center', padding: '15px' }}>
+                                Find Travelers
+                            </Link>
+                            <Link to="/profile" className="btn-secondary" style={{ textAlign: 'center', padding: '15px', border: '1px solid var(--glass-border)' }}>
+                                My Profile
+                            </Link>
+                        </>
+                    ) : (
+                        <>
+                            <Link to="/signup" className="btn-primary" style={{ textAlign: 'center', padding: '15px' }}>
+                                Get Started
+                            </Link>
+                            <Link to="/login" className="btn-secondary" style={{ textAlign: 'center', padding: '15px', border: '1px solid var(--glass-border)' }}>
+                                Login
+                            </Link>
+                        </>
+                    )}
+                </div>
+
+                <div className="mobile-features" style={{ marginTop: '40px' }}>
+                    <h3 style={{ marginBottom: '20px' }}>Quick Actions</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <Link to="/transport" className="glass" style={{ padding: '20px', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '2rem' }}>🚆</span>
+                            <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>Transport</span>
+                        </Link>
+                        <Link to="/trips" className="glass" style={{ padding: '20px', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '2rem' }}>🌍</span>
+                            <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>Trips</span>
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="home-page">
