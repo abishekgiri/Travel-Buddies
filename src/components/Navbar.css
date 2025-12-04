@@ -130,8 +130,9 @@
 
 @media (max-width: 968px) {
     .navbar {
-        width: 95%;
+        width: 92%;
         padding: 0.8rem 1rem;
+        top: 15px;
     }
 
     .nav-links {
@@ -141,41 +142,46 @@
     .nav-links.active {
         display: flex;
         position: absolute;
-        top: calc(100% + 10px);
+        top: calc(100% + 15px);
         left: 0;
         width: 100%;
         flex-direction: column;
-        background: var(--glass-bg);
+        background: rgba(26, 22, 18, 0.95);
+        /* Solid background for readability */
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         padding: 1.5rem;
-        border-radius: 16px;
+        border-radius: 20px;
         border: 1px solid var(--glass-border);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        animation: slideDown 0.3s ease-out forwards;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        gap: 0.5rem;
     }
 
     @keyframes slideDown {
         from {
             opacity: 0;
-            transform: translateY(-10px);
+            transform: translateY(-20px) scale(0.95);
         }
 
         to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
         }
     }
 
     .nav-links a {
-        padding: 12px;
-        border-radius: 8px;
+        padding: 14px;
+        border-radius: 12px;
         width: 100%;
         text-align: center;
+        font-size: 1.1rem;
+        background: rgba(255, 255, 255, 0.03);
     }
 
     .nav-links a:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
     }
 
     .menu-toggle {
@@ -184,5 +190,16 @@
 
     .user-name {
         display: none;
+    }
+
+    .user-profile {
+        padding: 4px;
+        border-radius: 50%;
+        background: transparent;
+        border: none;
+    }
+
+    .user-profile:hover {
+        background: transparent;
     }
 }

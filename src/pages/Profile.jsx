@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import EditProfileForm from '../components/EditProfileForm';
 import PhotoGallery from '../components/PhotoGallery';
@@ -7,21 +8,27 @@ import './Profile.css';
 
 const Profile = () => {
     const { user } = useAuth();
+    const { userId } = useParams(); // Get userId from URL
+    const navigate = useNavigate();
     const [profileData, setProfileData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [editMode, setEditMode] = useState(false);
     const [uploadingCover, setUploadingCover] = useState(false);
 
+    // Determine if we are viewing our own profile
+    const isOwnProfile = !userId || (user && user.id === parseInt(userId));
+    const targetUserId = userId ? parseInt(userId) : user?.id;
+
     useEffect(() => {
-        if (user?.id) {
+        if (targetUserId) {
             fetchProfile();
         }
-    }, [user]);
+    }, [targetUserId]);
 
     const fetchProfile = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/users/${user.id}`);
+            const response = await fetch(`${API_URL}/api/users/${targetUserId}`);
             if (!response.ok) throw new Error('Failed to fetch profile');
             const data = await response.json();
             setProfileData(data.data);
@@ -48,7 +55,6 @@ const Profile = () => {
         formData.append('caption', 'Cover Photo');
 
         try {
-            // First upload the photo
             const uploadRes = await fetch(`${API_URL}/api/photos/user`, {
                 method: 'POST',
                 body: formData
@@ -56,7 +62,6 @@ const Profile = () => {
             const uploadData = await uploadRes.json();
 
             if (uploadData.success) {
-                // Then update user profile with cover photo URL
                 const updateRes = await fetch(`${API_URL}/api/users/${user.id}`, {
                     method: 'PUT',
                     headers: {
@@ -82,11 +87,18 @@ const Profile = () => {
         }
     };
 
+    const handleMessage = () => {
+        // Navigate to chat with this user
+        // Ideally, we would create a conversation first, but for now let's just go to chat
+        // and let the user select them from the list if they exist, or we could pass state
+        navigate('/chat', { state: { startChatWith: profileData } });
+    };
+
     if (loading) return <div className="container" style={{ paddingTop: '100px' }}>Loading...</div>;
     if (error) return <div className="container" style={{ paddingTop: '100px' }}>Error: {error}</div>;
     if (!profileData) return null;
 
-    if (editMode) {
+    if (editMode && isOwnProfile) {
         return (
             <div className="profile-page container">
                 <EditProfileForm
@@ -110,16 +122,18 @@ const Profile = () => {
                         backgroundPosition: 'center'
                     }}
                 >
-                    <label className="edit-cover-btn btn-secondary">
-                        {uploadingCover ? 'Uploading...' : '📷 Edit Cover'}
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleCoverUpload}
-                            style={{ display: 'none' }}
-                            disabled={uploadingCover}
-                        />
-                    </label>
+                    {isOwnProfile && (
+                        <label className="edit-cover-btn btn-secondary">
+                            {uploadingCover ? 'Uploading...' : '📷 Edit Cover'}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleCoverUpload}
+                                style={{ display: 'none' }}
+                                disabled={uploadingCover}
+                            />
+                        </label>
+                    )}
                 </div>
                 <div className="profile-info-container">
                     <div className="profile-avatar-container">
@@ -184,10 +198,17 @@ const Profile = () => {
                         </div>
                     </div>
                     <div className="profile-actions">
-                        <button className="btn-primary" onClick={() => setEditMode(true)}>
-                            Edit Profile
-                        </button>
-                        {user.role === 'owner' && user.id !== profileData.id && (
+                        {isOwnProfile ? (
+                            <button className="btn-primary" onClick={() => setEditMode(true)}>
+                                Edit Profile
+                            </button>
+                        ) : (
+                            <button className="btn-primary" onClick={handleMessage}>
+                                Message
+                            </button>
+                        )}
+
+                        {user.role === 'owner' && !isOwnProfile && (
                             <button
                                 className="btn-secondary"
                                 style={{ marginLeft: '1rem', borderColor: '#ef4444', color: '#ef4444' }}
@@ -222,7 +243,7 @@ const Profile = () => {
                 </div>
             </div>
 
-            <PhotoGallery userId={user.id} />
+            <PhotoGallery userId={targetUserId} />
         </div>
     );
 };
