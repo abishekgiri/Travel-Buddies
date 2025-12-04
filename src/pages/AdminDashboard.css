@@ -1,0 +1,120 @@
+.admin-dashboard {
+    padding-top: 80px;
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    padding: 2rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.dashboard-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.users-section {
+    padding: 2rem;
+    border-radius: 16px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    margin-top: 1.5rem;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.users-table th,
+.users-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.users-table th {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-avatar-small {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.user-avatar-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-info-small {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name-small {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.user-email-small {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.role-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    text-transform: capitalize;
+}
+
+.role-badge.owner {
+    background: rgba(255, 215, 0, 0.2);
+    color: #ffd700;
+}
+
+.role-badge.admin {
+    background: rgba(99, 102, 241, 0.2);
+    color: #6366f1;
+}
+
+.role-badge.customer {
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+}
+
+.btn-delete-sm {
+    padding: 6px 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-delete-sm:hover {
+    background: rgba(239, 68, 68, 0.2);
+}

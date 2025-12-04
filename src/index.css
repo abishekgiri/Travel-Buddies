@@ -1,0 +1,110 @@
+/* Dark Theme (Default) */
+:root,
+[data-theme="dark"] {
+  --bg-primary: #1a1612;
+  --bg-secondary: #2a2420;
+  --text-primary: #f5f1ed;
+  --text-secondary: #c4b5a0;
+  --accent-primary: #e8956f;
+  --accent-secondary: #8b9d83;
+  --accent-tertiary: #d4a574;
+  --accent-warm: #c97d60;
+  --glass-bg: rgba(42, 36, 32, 0.7);
+  --glass-border: rgba(232, 149, 111, 0.2);
+  --shadow-lg: 0 10px 30px -3px rgba(201, 125, 96, 0.2), 0 4px 6px -2px rgba(139, 157, 131, 0.15);
+  --transition: all 0.3s ease;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg-primary: #faf8f5;
+  --bg-secondary: #f0ebe4;
+  --text-primary: #2a2420;
+  --text-secondary: #6b5d4f;
+  --accent-primary: #d67d54;
+  --accent-secondary: #6b8064;
+  --accent-tertiary: #b88d5a;
+  --accent-warm: #b86b4f;
+  --glass-bg: rgba(240, 235, 228, 0.7);
+  --glass-border: rgba(214, 125, 84, 0.3);
+  --shadow-lg: 0 10px 30px -3px rgba(107, 93, 79, 0.15), 0 4px 6px -2px rgba(107, 128, 100, 0.1);
+  --transition: all 0.3s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition);
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+/* Utilities */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-warm), var(--accent-tertiary));
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(232, 149, 111, 0.3);
+  transition: var(--transition);
+  background-size: 200% 200%;
+  animation: gradientFlow 3s ease infinite;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(232, 149, 111, 0.5);
+}
+
+@keyframes gradientFlow {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary), var(--accent-tertiary));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

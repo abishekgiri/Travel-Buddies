@@ -1,0 +1,116 @@
+.recommended-trips {
+    margin: 3rem 0;
+}
+
+.recommendations-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.recommendations-header h2 {
+    font-size: 2rem;
+    margin: 0 0 0.5rem 0;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.recommendations-header p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.trips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.trip-card {
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+}
+
+.trip-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 40px rgba(232, 149, 111, 0.3);
+}
+
+.trip-image {
+    width: 100%;
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 12px 12px 0 0;
+}
+
+.trip-content {
+    padding: 1.5rem;
+    flex: 1;
+}
+
+.trip-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.trip-content h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    flex: 1;
+}
+
+.compatibility-score {
+    background: linear-gradient(135deg, #4ade80, #22c55e);
+    padding: 0.5rem 0.75rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+}
+
+.score-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: white;
+}
+
+.score-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.trip-destination,
+.trip-dates,
+.trip-budget {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0.5rem 0;
+}
+
+.trip-description {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-top: 1rem;
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .trips-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .recommendations-header h2 {
+        font-size: 1.5rem;
+    }
+}

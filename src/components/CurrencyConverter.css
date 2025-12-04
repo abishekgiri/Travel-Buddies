@@ -1,0 +1,91 @@
+.currency-converter {
+    padding: 2rem;
+    margin-top: 2rem;
+}
+
+.currency-converter h3 {
+    margin: 0 0 1.5rem 0;
+}
+
+.converter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.swap-btn {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--accent-primary);
+    font-size: 1.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    align-self: flex-end;
+}
+
+.swap-btn:hover {
+    background: var(--accent-primary);
+    color: white;
+    transform: rotate(180deg);
+}
+
+.convert-btn {
+    width: 100%;
+}
+
+.conversion-result {
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    text-align: center;
+}
+
+.result-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.from-amount,
+.to-amount {
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.from-amount {
+    color: var(--text-primary);
+}
+
+.to-amount {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.equals {
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+}
+
+.exchange-rate {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .result-display {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .from-amount,
+    .to-amount {
+        font-size: 1.5rem;
+    }
+}

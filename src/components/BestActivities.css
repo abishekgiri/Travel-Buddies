@@ -1,0 +1,56 @@
+.best-activities {
+    padding: 1.5rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.best-activities h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    color: #ffd700;
+    /* Gold color for "Best" */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.activity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.95rem;
+    color: #e0e0e0;
+    transition: transform 0.2s ease;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-item:hover {
+    transform: translateX(5px);
+    color: #fff;
+}
+
+.activity-icon {
+    font-size: 1.1rem;
+}
+
+.best-activities.loading {
+    text-align: center;
+    color: #aaa;
+    font-style: italic;
+    padding: 2rem;
+}

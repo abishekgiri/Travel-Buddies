@@ -1,0 +1,144 @@
+.profile-page {
+    padding-bottom: 2rem;
+}
+
+.profile-header {
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.cover-photo {
+    height: 200px;
+    background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+    position: relative;
+}
+
+.edit-cover-btn {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.edit-cover-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.profile-info-container {
+    padding: 0 2rem 2rem;
+    position: relative;
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.profile-avatar-container {
+    margin-top: -60px;
+    flex-shrink: 0;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: #1f2937;
+    border: 4px solid #111827;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    overflow: hidden;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-details {
+    flex: 1;
+    padding-top: 1rem;
+    min-width: 300px;
+}
+
+.name-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.name-section h1 {
+    margin: 0;
+    font-size: 2rem;
+}
+
+.location {
+    color: #9ca3af;
+}
+
+.bio {
+    color: #d1d5db;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.profile-stats {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.interests-section h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #e5e7eb;
+}
+
+.interests-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tag {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+}
+
+.profile-actions {
+    padding-top: 1rem;
+    display: flex;
+    align-items: flex-start;
+}
