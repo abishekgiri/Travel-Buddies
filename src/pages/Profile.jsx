@@ -7,9 +7,14 @@ import { API_URL } from '../config';
 import './Profile.css';
 
 const Profile = () => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const { userId } = useParams(); // Get userId from URL
     const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
     const [profileData, setProfileData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -240,6 +245,32 @@ const Profile = () => {
                             </button>
                         )}
                     </div>
+
+                    {isOwnProfile && (
+                        <div className="logout-section" style={{ marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                            <button
+                                onClick={handleLogout}
+                                className="btn-secondary"
+                                style={{
+                                    color: '#ef4444',
+                                    borderColor: '#ef4444',
+                                    width: '100%',
+                                    maxWidth: '200px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem'
+                                }}
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                                Logout
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 

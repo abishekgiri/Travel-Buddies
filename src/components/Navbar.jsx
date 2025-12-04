@@ -10,10 +10,7 @@ const Navbar = () => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
+
 
     return (
         <nav className="navbar glass">
@@ -49,7 +46,7 @@ const Navbar = () => {
                                     )}
                                     <span className="user-name">{user.name}</span>
                                 </Link>
-                                <button onClick={handleLogout} className="btn-logout">Logout</button>
+
                             </div>
                         </>
                     ) : (
