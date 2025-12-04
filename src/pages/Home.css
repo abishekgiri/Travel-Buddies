@@ -71,8 +71,8 @@
 }
 
 .badge {
-    display: inline-block;
-    padding: 8px 20px;
+    display: table;
+    margin: 0 auto 2rem;
     background: rgba(232, 149, 111, 0.15);
     border: 1px solid rgba(232, 149, 111, 0.4);
     border-radius: 50px;
