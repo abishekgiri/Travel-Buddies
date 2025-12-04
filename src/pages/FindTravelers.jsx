@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
 import MapView from '../components/MapView';
@@ -173,7 +173,7 @@ const FindTravelers = () => {
                                     {traveler.matchScore}% Match
                                 </div>
                                 <div className="card-header">
-                                    <div className="avatar-container">
+                                    <Link to={`/profile/${traveler.id}`} className="avatar-container" style={{ textDecoration: 'none' }}>
                                         <div className="avatar">
                                             {traveler.avatar && traveler.avatar.startsWith('/uploads') ? (
                                                 <img src={`${API_URL}${traveler.avatar}`} alt={traveler.name} />
@@ -182,9 +182,11 @@ const FindTravelers = () => {
                                             )}
                                         </div>
                                         <div className={`status-indicator ${Math.random() > 0.5 ? 'online' : 'offline'}`} title="Online Status"></div>
-                                    </div>
+                                    </Link>
                                     <div className="header-info">
-                                        <h3>{traveler.name}, {traveler.age}</h3>
+                                        <Link to={`/profile/${traveler.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                                            <h3>{traveler.name}, {traveler.age}</h3>
+                                        </Link>
                                         <p className="location">📍 {traveler.location}</p>
                                     </div>
                                 </div>
