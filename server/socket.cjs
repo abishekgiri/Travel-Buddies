@@ -6,8 +6,12 @@ let io;
 const initializeSocket = (server) => {
     io = new Server(server, {
         cors: {
-            origin: "http://localhost:5173",
-            methods: ["GET", "POST"]
+            origin: [
+                "http://localhost:5173",
+                process.env.CLIENT_URL
+            ].filter(Boolean), // Remove undefined if env var is missing
+            methods: ["GET", "POST"],
+            credentials: true
         }
     });
 
