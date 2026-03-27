@@ -1,7 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { io } from 'socket.io-client';
+import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { useAuth } from './hooks/useAuth';
 import Navbar from './components/Navbar';
 import ThemeToggle from './components/ThemeToggle';
 import ChatBot from './components/ChatBot';
@@ -21,6 +23,7 @@ import TransportSearch from './pages/TransportSearch';
 import Trips from './pages/Trips';
 import TripDetails from './pages/TripDetails';
 import BudgetPlanner from './pages/BudgetPlanner';
+import { API_URL, createSocketOptions } from './config';
 import './index.css';
 
 const PrivateRoute = ({ children }) => {
@@ -47,23 +50,21 @@ const AppContent = () => {
   const [notification, setNotification] = React.useState(null);
 
   React.useEffect(() => {
-    if (user) {
-      import('socket.io-client').then(({ io }) => {
-        const { API_URL } = require('./config');
-        const socket = io(API_URL);
-
-        socket.emit('user_online', user.id);
-
-        socket.on('notification', (data) => {
-          setNotification(data);
-          // Play sound
-          const audio = new Audio('/notification.mp3');
-          audio.play().catch(e => console.log('Audio play failed', e));
-        });
-
-        return () => socket.disconnect();
-      });
+    if (!user) {
+      return undefined;
     }
+
+    const socket = io(API_URL, createSocketOptions());
+    socket.emit('user_online');
+
+    socket.on('notification', (data) => {
+      setNotification({
+        ...data,
+        _id: `${Date.now()}-${Math.random()}`
+      });
+    });
+
+    return () => socket.disconnect();
   }, [user]);
 
   return (
@@ -72,6 +73,7 @@ const AppContent = () => {
       <ThemeToggle />
       {notification && (
         <ToastNotification
+          key={notification._id}
           message={notification}
           onClose={() => setNotification(null)}
         />

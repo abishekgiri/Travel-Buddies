@@ -1,19 +1,66 @@
 const express = require('express');
 const db = require('../database.cjs');
+const { requireRole, verifyToken } = require('../middleware/auth.cjs');
 
 const router = express.Router();
 
+const dbGet = (sql, params = []) => new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+    });
+});
+
+const dbAll = (sql, params = []) => new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+    });
+});
+
+const dbRun = (sql, params = []) => new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes, lastID: this.lastID });
+    });
+});
+
+const isPrivilegedUser = (user) => user && (user.role === 'owner' || user.role === 'admin');
+
+const getTrip = async (tripId) => dbGet('SELECT * FROM trips WHERE id = ?', [tripId]);
+
+const isTripMember = async (tripId, userId) => {
+    const membership = await dbGet(
+        'SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?',
+        [tripId, userId]
+    );
+
+    return Boolean(membership);
+};
+
+const canAccessTrip = async (tripId, user) => {
+    if (!user) {
+        return false;
+    }
+
+    if (isPrivilegedUser(user)) {
+        return true;
+    }
+
+    return isTripMember(tripId, user.id);
+};
+
 // Get all trips
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     const { status = 'open', destination, minBudget, maxBudget } = req.query;
 
     let query = `
-    SELECT t.*, u.name as creator_name, u.avatar as creator_avatar,
-           (SELECT COUNT(*) FROM trip_members WHERE trip_id = t.id) as member_count
-    FROM trips t
-    JOIN users u ON t.creator_id = u.id
-    WHERE 1=1
-  `;
+        SELECT t.*, u.name as creator_name, u.avatar as creator_avatar,
+               (SELECT COUNT(*) FROM trip_members WHERE trip_id = t.id) as member_count
+        FROM trips t
+        JOIN users u ON t.creator_id = u.id
+        WHERE 1=1
+    `;
     const params = [];
 
     if (status) {
@@ -38,91 +85,88 @@ router.get('/', (req, res) => {
 
     query += ' ORDER BY t.created_at DESC';
 
-    db.all(query, params, (err, trips) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+    try {
+        const trips = await dbAll(query, params);
         res.json({ success: true, data: trips });
-    });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Get single trip details
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
     const { id } = req.params;
 
-    db.get(
-        `SELECT t.*, u.name as creator_name, u.avatar as creator_avatar, u.email as creator_email
-     FROM trips t
-     JOIN users u ON t.creator_id = u.id
-     WHERE t.id = ?`,
-        [id],
-        (err, trip) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            if (!trip) {
-                return res.status(404).json({ error: 'Trip not found' });
-            }
+    try {
+        const trip = await dbGet(
+            `SELECT t.*, u.name as creator_name, u.avatar as creator_avatar, u.email as creator_email
+             FROM trips t
+             JOIN users u ON t.creator_id = u.id
+             WHERE t.id = ?`,
+            [id]
+        );
 
-            // Get trip members
-            db.all(
-                `SELECT tm.*, u.name, u.avatar, u.location
-         FROM trip_members tm
-         JOIN users u ON tm.user_id = u.id
-         WHERE tm.trip_id = ?`,
-                [id],
-                (err, members) => {
-                    if (err) {
-                        return res.status(500).json({ error: err.message });
-                    }
-
-                    // Get trip activities
-                    db.all(
-                        'SELECT * FROM trip_activities WHERE trip_id = ? ORDER BY date',
-                        [id],
-                        (err, activities) => {
-                            if (err) {
-                                return res.status(500).json({ error: err.message });
-                            }
-
-                            res.json({
-                                success: true,
-                                data: {
-                                    ...trip,
-                                    members,
-                                    activities
-                                }
-                            });
-                        }
-                    );
-                }
-            );
+        if (!trip) {
+            return res.status(404).json({ error: 'Trip not found' });
         }
-    );
+
+        const members = await dbAll(
+            `SELECT tm.*, u.name, u.avatar, u.location
+             FROM trip_members tm
+             JOIN users u ON tm.user_id = u.id
+             WHERE tm.trip_id = ?`,
+            [id]
+        );
+
+        const activities = await dbAll(
+            'SELECT * FROM trip_activities WHERE trip_id = ? ORDER BY date',
+            [id]
+        );
+
+        res.json({
+            success: true,
+            data: {
+                ...trip,
+                members,
+                activities
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Get trip members
-router.get('/:id/members', (req, res) => {
+router.get('/:id/members', verifyToken, async (req, res) => {
     const { id } = req.params;
-    db.all(
-        `SELECT u.id, u.name, u.avatar, u.email 
-         FROM trip_members tm 
-         JOIN users u ON tm.user_id = u.id 
-         WHERE tm.trip_id = ?`,
-        [id],
-        (err, rows) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            res.json(rows);
+
+    try {
+        const trip = await getTrip(id);
+        if (!trip) {
+            return res.status(404).json({ error: 'Trip not found' });
         }
-    );
+
+        if (!(await canAccessTrip(id, req.user))) {
+            return res.status(403).json({ error: 'You must be part of this trip to view members' });
+        }
+
+        const rows = await dbAll(
+            `SELECT u.id, u.name, u.avatar, u.email 
+             FROM trip_members tm 
+             JOIN users u ON tm.user_id = u.id 
+             WHERE tm.trip_id = ?`,
+            [id]
+        );
+
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Create new trip (Admin/Owner)
-router.post('/admin/create', (req, res) => {
+router.post('/admin/create', verifyToken, requireRole('owner', 'admin'), async (req, res) => {
     const {
-        creator_id,
         title,
         destination,
         start_date,
@@ -134,53 +178,38 @@ router.post('/admin/create', (req, res) => {
         activities
     } = req.body;
 
-    if (!creator_id || !title || !destination || !start_date || !end_date) {
+    if (!title || !destination || !start_date || !end_date) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Verify user is owner/admin
-    db.get('SELECT role FROM users WHERE id = ?', [creator_id], (err, user) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (!user || (user.role !== 'owner' && user.role !== 'admin')) {
-            return res.status(403).json({ error: 'Unauthorized: Only admins can create curated trips' });
+    try {
+        const result = await dbRun(
+            `INSERT INTO trips (creator_id, title, destination, start_date, end_date, budget, max_travelers, description, image_url)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [req.user.id, title, destination, start_date, end_date, budget, max_travelers || 10, description, image_url]
+        );
+
+        const tripId = result.lastID;
+        await dbRun('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)', [tripId, req.user.id]);
+
+        if (Array.isArray(activities) && activities.length > 0) {
+            for (const activity of activities) {
+                await dbRun('INSERT INTO trip_activities (trip_id, activity) VALUES (?, ?)', [tripId, activity]);
+            }
         }
 
-        db.run(
-            `INSERT INTO trips (creator_id, title, destination, start_date, end_date, budget, max_travelers, description, image_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [creator_id, title, destination, start_date, end_date, budget, max_travelers || 10, description, image_url],
-            function (err) {
-                if (err) {
-                    return res.status(500).json({ error: err.message });
-                }
-
-                const tripId = this.lastID;
-
-                // Automatically add creator as first member
-                db.run('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)', [tripId, creator_id]);
-
-                // Add activities if provided
-                if (activities && activities.length > 0) {
-                    const stmt = db.prepare('INSERT INTO trip_activities (trip_id, activity) VALUES (?, ?)');
-                    activities.forEach(activity => {
-                        stmt.run(tripId, activity);
-                    });
-                    stmt.finalize();
-                }
-
-                res.status(201).json({
-                    success: true,
-                    data: { id: tripId, message: 'Curated trip created successfully' }
-                });
-            }
-        );
-    });
+        res.status(201).json({
+            success: true,
+            data: { id: tripId, message: 'Curated trip created successfully' }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Create new trip (Standard)
-router.post('/', (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
     const {
-        creator_id,
         title,
         destination,
         start_date,
@@ -193,118 +222,84 @@ router.post('/', (req, res) => {
         longitude
     } = req.body;
 
-    if (!creator_id || !title || !destination || !start_date || !end_date) {
+    if (!title || !destination || !start_date || !end_date) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    db.run(
-        `INSERT INTO trips (creator_id, title, destination, start_date, end_date, budget, max_travelers, description, image_url, latitude, longitude)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [creator_id, title, destination, start_date, end_date, budget, max_travelers || 10, description, image_url, latitude, longitude],
-        function (err) {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
+    try {
+        const result = await dbRun(
+            `INSERT INTO trips (creator_id, title, destination, start_date, end_date, budget, max_travelers, description, image_url, latitude, longitude)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [req.user.id, title, destination, start_date, end_date, budget, max_travelers || 10, description, image_url, latitude, longitude]
+        );
 
-            // Automatically add creator as first member
-            db.run(
-                'INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)',
-                [this.lastID, creator_id],
-                (err) => {
-                    if (err) {
-                        console.error('Error adding creator as member:', err);
-                    }
-                }
-            );
+        await dbRun('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)', [result.lastID, req.user.id]);
 
-            res.status(201).json({
-                success: true,
-                data: { id: this.lastID, message: 'Trip created successfully' }
-            });
-        }
-    );
+        res.status(201).json({
+            success: true,
+            data: { id: result.lastID, message: 'Trip created successfully' }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Join a trip
-router.post('/:id/join', (req, res) => {
+router.post('/:id/join', verifyToken, async (req, res) => {
     const { id } = req.params;
-    const { user_id } = req.body;
 
-    if (!user_id) {
-        return res.status(400).json({ error: 'User ID required' });
-    }
-
-    // Check if trip exists and is open
-    db.get('SELECT * FROM trips WHERE id = ?', [id], (err, trip) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+    try {
+        const trip = await getTrip(id);
         if (!trip) {
             return res.status(404).json({ error: 'Trip not found' });
         }
+
         if (trip.status !== 'open') {
             return res.status(400).json({ error: 'Trip is not open for joining' });
         }
 
-        // Check current member count
-        db.get(
+        const result = await dbGet(
             'SELECT COUNT(*) as count FROM trip_members WHERE trip_id = ?',
-            [id],
-            (err, result) => {
-                if (err) {
-                    return res.status(500).json({ error: err.message });
-                }
-                if (result.count >= trip.max_travelers) {
-                    return res.status(400).json({ error: 'Trip is full' });
-                }
-
-                // Add user to trip
-                db.run(
-                    'INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)',
-                    [id, user_id],
-                    function (err) {
-                        if (err) {
-                            if (err.message.includes('UNIQUE')) {
-                                return res.status(400).json({ error: 'Already a member of this trip' });
-                            }
-                            return res.status(500).json({ error: err.message });
-                        }
-
-                        res.json({ success: true, message: 'Successfully joined trip' });
-                    }
-                );
-            }
+            [id]
         );
-    });
+
+        if (result.count >= trip.max_travelers) {
+            return res.status(400).json({ error: 'Trip is full' });
+        }
+
+        await dbRun('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)', [id, req.user.id]);
+        res.json({ success: true, message: 'Successfully joined trip' });
+    } catch (error) {
+        if (error.message.includes('UNIQUE')) {
+            return res.status(400).json({ error: 'Already a member of this trip' });
+        }
+
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Leave a trip
-router.post('/:id/leave', (req, res) => {
+router.post('/:id/leave', verifyToken, async (req, res) => {
     const { id } = req.params;
-    const { user_id } = req.body;
 
-    if (!user_id) {
-        return res.status(400).json({ error: 'User ID required' });
-    }
+    try {
+        const result = await dbRun(
+            'DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?',
+            [id, req.user.id]
+        );
 
-    db.run(
-        'DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?',
-        [id, user_id],
-        function (err) {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            if (this.changes === 0) {
-                return res.status(404).json({ error: 'Not a member of this trip' });
-            }
-
-            res.json({ success: true, message: 'Successfully left trip' });
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Not a member of this trip' });
         }
-    );
+
+        res.json({ success: true, message: 'Successfully left trip' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Add activity to trip
-router.post('/:id/activities', (req, res) => {
+router.post('/:id/activities', verifyToken, async (req, res) => {
     const { id } = req.params;
     const { activity, date, cost, notes } = req.body;
 
@@ -312,155 +307,184 @@ router.post('/:id/activities', (req, res) => {
         return res.status(400).json({ error: 'Activity name required' });
     }
 
-    db.run(
-        'INSERT INTO trip_activities (trip_id, activity, date, cost, notes) VALUES (?, ?, ?, ?, ?)',
-        [id, activity, date, cost, notes],
-        function (err) {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-
-            res.status(201).json({
-                success: true,
-                data: { id: this.lastID, message: 'Activity added successfully' }
-            });
+    try {
+        const trip = await getTrip(id);
+        if (!trip) {
+            return res.status(404).json({ error: 'Trip not found' });
         }
-    );
+
+        if (!(await canAccessTrip(id, req.user))) {
+            return res.status(403).json({ error: 'You must be part of this trip to add activities' });
+        }
+
+        const result = await dbRun(
+            'INSERT INTO trip_activities (trip_id, activity, date, cost, notes) VALUES (?, ?, ?, ?, ?)',
+            [id, activity, date, cost, notes]
+        );
+
+        res.status(201).json({
+            success: true,
+            data: { id: result.lastID, message: 'Activity added successfully' }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Get user's trips
-router.get('/user/:userId', (req, res) => {
+router.get('/user/:userId', verifyToken, async (req, res) => {
     const { userId } = req.params;
+    const requestedUserId = Number(userId);
 
-    db.all(
-        `SELECT DISTINCT t.*, u.name as creator_name, u.avatar as creator_avatar,
-            (SELECT COUNT(*) FROM trip_members WHERE trip_id = t.id) as member_count
-     FROM trips t
-     JOIN users u ON t.creator_id = u.id
-     JOIN trip_members tm ON t.id = tm.trip_id
-     WHERE tm.user_id = ?
-     ORDER BY t.start_date DESC`,
-        [userId],
-        (err, trips) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            res.json({ success: true, data: trips });
-        }
-    );
+    if (req.user.id !== requestedUserId && !isPrivilegedUser(req.user)) {
+        return res.status(403).json({ error: 'You can only view your own trips' });
+    }
+
+    try {
+        const trips = await dbAll(
+            `SELECT DISTINCT t.*, u.name as creator_name, u.avatar as creator_avatar,
+                (SELECT COUNT(*) FROM trip_members WHERE trip_id = t.id) as member_count
+             FROM trips t
+             JOIN users u ON t.creator_id = u.id
+             JOIN trip_members tm ON t.id = tm.trip_id
+             WHERE tm.user_id = ?
+             ORDER BY t.start_date DESC`,
+            [requestedUserId]
+        );
+
+        res.json({ success: true, data: trips });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Delete a trip (Admin/Owner or Creator)
-router.delete('/:id', (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
-    const { user_id } = req.body; // In a real app, get this from auth middleware
 
-    if (!user_id) {
-        return res.status(400).json({ error: 'User ID required' });
+    try {
+        const trip = await dbGet('SELECT creator_id FROM trips WHERE id = ?', [id]);
+        if (!trip) {
+            return res.status(404).json({ error: 'Trip not found' });
+        }
+
+        const isCreator = trip.creator_id === req.user.id;
+        if (!isCreator && !isPrivilegedUser(req.user)) {
+            return res.status(403).json({ error: 'Unauthorized to delete this trip' });
+        }
+
+        const budgets = await dbAll('SELECT id FROM budgets WHERE trip_id = ?', [id]);
+        const budgetIds = budgets.map((budget) => budget.id);
+
+        if (budgetIds.length > 0) {
+            const placeholders = budgetIds.map(() => '?').join(',');
+            await dbRun(`DELETE FROM expenses WHERE budget_id IN (${placeholders})`, budgetIds);
+        }
+
+        await dbRun('DELETE FROM budgets WHERE trip_id = ?', [id]);
+        await dbRun('DELETE FROM trip_messages WHERE trip_id = ?', [id]);
+        await dbRun('DELETE FROM photos WHERE trip_id = ?', [id]);
+        await dbRun('DELETE FROM trip_activities WHERE trip_id = ?', [id]);
+        await dbRun('DELETE FROM trip_members WHERE trip_id = ?', [id]);
+        await dbRun('DELETE FROM trips WHERE id = ?', [id]);
+
+        res.json({ success: true, message: 'Trip deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-
-    // Check permissions
-    db.get('SELECT role FROM users WHERE id = ?', [user_id], (err, user) => {
-        if (err) return res.status(500).json({ error: err.message });
-
-        db.get('SELECT creator_id FROM trips WHERE id = ?', [id], (err, trip) => {
-            if (err) return res.status(500).json({ error: err.message });
-            if (!trip) return res.status(404).json({ error: 'Trip not found' });
-
-            const isOwner = user && (user.role === 'owner' || user.role === 'admin');
-            const isCreator = trip.creator_id === parseInt(user_id);
-
-            if (!isOwner && !isCreator) {
-                return res.status(403).json({ error: 'Unauthorized to delete this trip' });
-            }
-
-            // Perform deletion (Cascade manually if needed, but for now just the trip)
-            // Ideally, we should delete from trip_members, trip_activities, etc.
-            db.serialize(() => {
-                db.run('DELETE FROM trip_members WHERE trip_id = ?', [id]);
-                db.run('DELETE FROM trip_activities WHERE trip_id = ?', [id]);
-                db.run('DELETE FROM photos WHERE trip_id = ?', [id]);
-                db.run('DELETE FROM budgets WHERE trip_id = ?', [id]);
-                db.run('DELETE FROM trips WHERE id = ?', [id], function (err) {
-                    if (err) {
-                        return res.status(500).json({ error: err.message });
-                    }
-                    res.json({ success: true, message: 'Trip deleted successfully' });
-                });
-            });
-        });
-    });
 });
 
 // Get trip messages
-router.get('/:id/messages', (req, res) => {
+router.get('/:id/messages', verifyToken, async (req, res) => {
     const { id } = req.params;
-    db.all(
-        `SELECT tm.*, u.name as sender_name, u.avatar as sender_avatar
-         FROM trip_messages tm
-         JOIN users u ON tm.sender_id = u.id
-         WHERE tm.trip_id = ?
-         ORDER BY tm.created_at ASC`,
-        [id],
-        (err, messages) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            res.json({ success: true, data: messages });
+
+    try {
+        const trip = await getTrip(id);
+        if (!trip) {
+            return res.status(404).json({ error: 'Trip not found' });
         }
-    );
+
+        if (!(await canAccessTrip(id, req.user))) {
+            return res.status(403).json({ error: 'You must be part of this trip to view messages' });
+        }
+
+        const messages = await dbAll(
+            `SELECT tm.*, u.name as sender_name, u.avatar as sender_avatar
+             FROM trip_messages tm
+             JOIN users u ON tm.sender_id = u.id
+             WHERE tm.trip_id = ?
+             ORDER BY tm.created_at ASC`,
+            [id]
+        );
+
+        res.json({ success: true, data: messages });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Send trip message
-router.post('/:id/messages', (req, res) => {
+router.post('/:id/messages', verifyToken, async (req, res) => {
     const { id } = req.params;
-    const { sender_id, message } = req.body;
+    const { message } = req.body;
 
-    if (!sender_id || !message) {
+    if (!message) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    db.run(
-        'INSERT INTO trip_messages (trip_id, sender_id, message) VALUES (?, ?, ?)',
-        [id, sender_id, message],
-        function (err) {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-
-            // Fetch the created message to return it
-            db.get(
-                `SELECT tm.*, u.name as sender_name, u.avatar as sender_avatar
-                 FROM trip_messages tm
-                 JOIN users u ON tm.sender_id = u.id
-                 WHERE tm.id = ?`,
-                [this.lastID],
-                (err, newMessage) => {
-                    if (err) {
-                        return res.status(500).json({ error: err.message });
-                    }
-                    res.status(201).json({ success: true, data: newMessage });
-                }
-            );
+    try {
+        const trip = await getTrip(id);
+        if (!trip) {
+            return res.status(404).json({ error: 'Trip not found' });
         }
-    );
+
+        if (!(await canAccessTrip(id, req.user))) {
+            return res.status(403).json({ error: 'You must be part of this trip to send messages' });
+        }
+
+        const result = await dbRun(
+            'INSERT INTO trip_messages (trip_id, sender_id, message) VALUES (?, ?, ?)',
+            [id, req.user.id, message]
+        );
+
+        const newMessage = await dbGet(
+            `SELECT tm.*, u.name as sender_name, u.avatar as sender_avatar
+             FROM trip_messages tm
+             JOIN users u ON tm.sender_id = u.id
+             WHERE tm.id = ?`,
+            [result.lastID]
+        );
+
+        res.status(201).json({ success: true, data: newMessage });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Toggle pin message
-router.put('/:id/messages/:messageId/pin', (req, res) => {
-    const { messageId } = req.params;
+router.put('/:id/messages/:messageId/pin', verifyToken, async (req, res) => {
+    const { id, messageId } = req.params;
     const { is_pinned } = req.body;
 
-    db.run(
-        'UPDATE trip_messages SET is_pinned = ? WHERE id = ?',
-        [is_pinned ? 1 : 0, messageId],
-        function (err) {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            res.json({ success: true, message: 'Message pin status updated' });
+    try {
+        const trip = await getTrip(id);
+        if (!trip) {
+            return res.status(404).json({ error: 'Trip not found' });
         }
-    );
+
+        if (!(await canAccessTrip(id, req.user))) {
+            return res.status(403).json({ error: 'You must be part of this trip to pin messages' });
+        }
+
+        await dbRun(
+            'UPDATE trip_messages SET is_pinned = ? WHERE id = ? AND trip_id = ?',
+            [is_pinned ? 1 : 0, messageId, id]
+        );
+
+        res.json({ success: true, message: 'Message pin status updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 module.exports = router;

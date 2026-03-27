@@ -159,7 +159,10 @@ router.post('/login', (req, res) => {
                     name: user.name,
                     email: user.email,
                     role: user.role,
-                    avatar: user.avatar
+                    avatar: user.avatar,
+                    location: user.location,
+                    destination: user.destination,
+                    interests: JSON.parse(user.interests || '[]')
                 }
             });
         });

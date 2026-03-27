@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import ImageUpload from './ImageUpload';
+import { API_URL, createAuthHeaders } from '../config';
 import './EditProfileForm.css';
 
 const EditProfileForm = ({ user, initialData, onSave, onCancel }) => {
@@ -53,12 +54,11 @@ const EditProfileForm = ({ user, initialData, onSave, onCancel }) => {
                 age: parseInt(formData.age) || null
             };
 
-            const response = await fetch(`http://localhost:3000/api/users/${user.id}`, {
+            const response = await fetch(`${API_URL}/api/users/${user.id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
+                headers: createAuthHeaders({
+                    'Content-Type': 'application/json'
+                }),
                 body: JSON.stringify(processedData)
             });
 

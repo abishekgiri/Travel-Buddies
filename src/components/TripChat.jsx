@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../config';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { API_URL, createAuthHeaders, createSocketOptions } from '../config';
 import io from 'socket.io-client';
 import './TripChat.css';
 
@@ -8,15 +8,33 @@ const TripChat = ({ tripId }) => {
     const { user } = useAuth();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const [socket, setSocket] = useState(null);
+    const socketRef = useRef(null);
     const messagesEndRef = useRef(null);
 
-    useEffect(() => {
-        // Connect to socket
-        const newSocket = io(API_URL);
-        setSocket(newSocket);
+    const scrollToBottom = useCallback(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, []);
 
-        newSocket.emit('user_online', user.id);
+    const fetchMessages = useCallback(async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/trips/${tripId}/messages`, {
+                headers: createAuthHeaders()
+            });
+            const data = await response.json();
+            if (data.success) {
+                setMessages(data.data);
+                scrollToBottom();
+            }
+        } catch (error) {
+            console.error('Failed to fetch messages:', error);
+        }
+    }, [scrollToBottom, tripId]);
+
+    useEffect(() => {
+        const newSocket = io(API_URL, createSocketOptions());
+        socketRef.current = newSocket;
+
+        newSocket.emit('user_online');
         newSocket.emit('join_trip', tripId);
 
         newSocket.on('new_trip_message', (message) => {
@@ -28,27 +46,15 @@ const TripChat = ({ tripId }) => {
             scrollToBottom();
         });
 
-        fetchMessages();
+        const initialLoadTimer = window.setTimeout(() => {
+            fetchMessages();
+        }, 0);
 
-        return () => newSocket.disconnect();
-    }, [tripId, user.id]);
-
-    const fetchMessages = async () => {
-        try {
-            const response = await fetch(`${API_URL}/api/trips/${tripId}/messages`);
-            const data = await response.json();
-            if (data.success) {
-                setMessages(data.data);
-                scrollToBottom();
-            }
-        } catch (error) {
-            console.error('Failed to fetch messages:', error);
-        }
-    };
-
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+        return () => {
+            window.clearTimeout(initialLoadTimer);
+            newSocket.disconnect();
+        };
+    }, [fetchMessages, scrollToBottom, tripId, user.id]);
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
@@ -61,9 +67,8 @@ const TripChat = ({ tripId }) => {
             // Send to backend
             const response = await fetch(`${API_URL}/api/trips/${tripId}/messages`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
-                    sender_id: user.id,
                     message: messageContent
                 })
             });
@@ -71,12 +76,9 @@ const TripChat = ({ tripId }) => {
 
             if (data.success) {
                 // Emit to socket for others
-                socket.emit('send_trip_message', {
+                socketRef.current?.emit('send_trip_message', {
                     tripId,
-                    message: messageContent,
-                    senderId: user.id,
-                    senderName: user.name,
-                    senderAvatar: user.avatar
+                    messageId: data.data.id
                 });
 
                 // We rely on the socket to update our own UI to keep it in sync
@@ -91,7 +93,7 @@ const TripChat = ({ tripId }) => {
         try {
             const response = await fetch(`${API_URL}/api/trips/${tripId}/messages/${messageId}/pin`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ is_pinned: !currentStatus })
             });
 

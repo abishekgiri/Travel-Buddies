@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import WeatherWidget from '../components/WeatherWidget';
 import ItineraryTimeline from '../components/ItineraryTimeline';
 import ExpenseSplitter from '../components/ExpenseSplitter';
@@ -8,7 +8,7 @@ import ActivityMap from '../components/ActivityMap';
 import BestActivities from '../components/BestActivities';
 import PhotoGallery from '../components/PhotoGallery';
 import TripChat from '../components/TripChat';
-import { API_URL } from '../config';
+import { API_URL, createAuthHeaders } from '../config';
 import './TripDetails.css';
 
 const TripDetails = () => {
@@ -30,10 +30,6 @@ const TripDetails = () => {
     const [showAIModal, setShowAIModal] = useState(false);
     const [aiInterests, setAiInterests] = useState('');
     const [generatingAI, setGeneratingAI] = useState(false);
-
-    useEffect(() => {
-        fetchTripDetails();
-    }, [id]);
 
     const handleGenerateItinerary = async () => {
         setGeneratingAI(true);
@@ -66,7 +62,7 @@ const TripDetails = () => {
         }
     };
 
-    const fetchTripDetails = async () => {
+    const fetchTripDetails = useCallback(async () => {
         try {
             const response = await fetch(`${API_URL}/api/trips/${id}`);
             if (!response.ok) throw new Error('Failed to fetch trip');
@@ -77,7 +73,11 @@ const TripDetails = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        fetchTripDetails();
+    }, [fetchTripDetails]);
 
     const handleLeaveTrip = async () => {
         if (!confirm('Are you sure you want to leave this trip?')) return;
@@ -85,8 +85,7 @@ const TripDetails = () => {
         try {
             const response = await fetch(`${API_URL}/api/trips/${id}/leave`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.id })
+                headers: createAuthHeaders({ 'Content-Type': 'application/json' })
             });
 
             if (!response.ok) throw new Error('Failed to leave trip');
@@ -103,7 +102,7 @@ const TripDetails = () => {
         try {
             const response = await fetch(`${API_URL}/api/trips/${id}/activities`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(newActivity)
             });
 
@@ -120,7 +119,9 @@ const TripDetails = () => {
     const handleOpenExpenseSplitter = async () => {
         try {
             // Check if budget exists
-            const res = await fetch(`${API_URL}/api/budgets/${id}`);
+            const res = await fetch(`${API_URL}/api/budgets/${id}`, {
+                headers: createAuthHeaders()
+            });
             if (res.ok) {
                 const data = await res.json();
                 setBudgetId(data.budget.id);
@@ -129,12 +130,11 @@ const TripDetails = () => {
                 // Create default budget if not exists
                 const createRes = await fetch(`${API_URL}/api/budgets`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({
                         trip_id: id,
                         total_budget: trip.budget || 1000,
-                        currency: 'USD',
-                        created_by: user.id
+                        currency: 'USD'
                     })
                 });
                 if (createRes.ok) {
@@ -209,11 +209,9 @@ const TripDetails = () => {
                                     try {
                                         const response = await fetch(`${API_URL}/api/trips/${id}`, {
                                             method: 'DELETE',
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                                'Authorization': `Bearer ${localStorage.getItem('token')}`
-                                            },
-                                            body: JSON.stringify({ user_id: user.id })
+                                            headers: createAuthHeaders({
+                                                'Content-Type': 'application/json'
+                                            })
                                         });
                                         if (response.ok) {
                                             alert('Trip deleted successfully');

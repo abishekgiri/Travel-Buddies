@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { API_URL } from '../config';
 import MapView from '../components/MapView';
 import './FindTravelers.css';
@@ -79,11 +79,11 @@ const FindTravelers = () => {
         navigate('/chat');
     };
 
-    const handleSaveProfile = (travelerId) => {
+    const handleSaveProfile = () => {
         alert('Profile saved to favorites!');
     };
 
-    const handleAddFriend = (travelerId) => {
+    const handleAddFriend = () => {
         alert('Friend request sent!');
     };
 

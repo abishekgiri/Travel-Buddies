@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { API_URL } from '../config';
+import { API_URL, createAuthHeaders } from '../config';
 import './ImageUpload.css';
 
 const ImageUpload = ({ onUpload, type = 'profile', currentImage, userId, tripId }) => {
@@ -34,6 +34,7 @@ const ImageUpload = ({ onUpload, type = 'profile', currentImage, userId, tripId 
             const endpoint = type === 'profile' ? '/api/upload/profile' : '/api/upload/trip';
             const response = await fetch(`${API_URL}${endpoint}`, {
                 method: 'POST',
+                headers: createAuthHeaders(),
                 body: formData
             });
 

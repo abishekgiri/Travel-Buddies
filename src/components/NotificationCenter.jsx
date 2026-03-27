@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../config';
+import { useAuth } from '../hooks/useAuth';
+import { API_URL, createSocketOptions } from '../config';
 import { io } from 'socket.io-client';
 import './NotificationCenter.css';
 
@@ -16,8 +16,8 @@ const NotificationCenter = () => {
         if (!user) return;
 
         // Connect to socket
-        socketRef.current = io(API_URL);
-        socketRef.current.emit('user_online', user.id);
+        socketRef.current = io(API_URL, createSocketOptions());
+        socketRef.current.emit('user_online');
 
         // Listen for notifications
         socketRef.current.on('notification', (notification) => {

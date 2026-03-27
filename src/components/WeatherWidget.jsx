@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import './WeatherWidget.css';
 
-const WeatherWidget = ({ destination, date }) => {
+const WeatherWidget = ({ destination }) => {
     const [weatherDataList, setWeatherDataList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
         const fetchWeather = async () => {
-            if (!destination) return;
+            if (!destination) {
+                setWeatherDataList([]);
+                setLoading(false);
+                return;
+            }
 
             setLoading(true);
             setError('');

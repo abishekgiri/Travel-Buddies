@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { API_URL } from '../config';
 import NotificationCenter from './NotificationCenter';
 import './Navbar.css';
 
 const Navbar = () => {
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
+    const { user } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
 
@@ -35,7 +34,7 @@ const Navbar = () => {
                             <NotificationCenter />
                             <div className="user-menu">
                                 <Link to="/profile" className="user-profile">
-                                    {user.avatar && user.avatar.startsWith('http') || user.avatar && user.avatar.startsWith('/') ? (
+                                    {user.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('/')) ? (
                                         <img
                                             src={user.avatar.startsWith('/') ? `${API_URL}${user.avatar}` : user.avatar}
                                             alt={user.name}

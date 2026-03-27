@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../config';
+import { useAuth } from '../hooks/useAuth';
+import { API_URL, createAuthHeaders } from '../config';
 import './AdminTripCreator.css';
 
 const AdminTripCreator = () => {
@@ -45,11 +45,10 @@ const AdminTripCreator = () => {
             // 1. Create the trip
             const tripResponse = await fetch(`${API_URL}/api/trips/admin/create`, {
                 method: 'POST',
-                headers: {
+                headers: createAuthHeaders({
                     'Content-Type': 'application/json'
-                },
+                }),
                 body: JSON.stringify({
-                    creator_id: user.id,
                     title: formData.title,
                     destination: formData.destination,
                     start_date: formData.startDate,

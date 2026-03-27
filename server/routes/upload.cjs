@@ -4,8 +4,18 @@ const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 const db = require('../database.cjs');
+const { verifyToken } = require('../middleware/auth.cjs');
 
 const router = express.Router();
+
+const dbGet = (sql, params = []) => new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+    });
+});
+
+const isPrivilegedUser = (user) => user && (user.role === 'owner' || user.role === 'admin');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -45,15 +55,19 @@ const upload = multer({
 });
 
 // Upload profile picture
-router.post('/profile', upload.single('image'), async (req, res) => {
+router.post('/profile', verifyToken, upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        const { userId } = req.body;
+        const userId = Number(req.body.userId);
         if (!userId) {
             return res.status(400).json({ error: 'User ID required' });
+        }
+
+        if (req.user.id !== userId && !isPrivilegedUser(req.user)) {
+            return res.status(403).json({ error: 'You can only upload your own profile photo' });
         }
 
         // Compress and resize image
@@ -87,15 +101,30 @@ router.post('/profile', upload.single('image'), async (req, res) => {
 });
 
 // Upload trip photo
-router.post('/trip', upload.single('image'), async (req, res) => {
+router.post('/trip', verifyToken, upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        const { userId, tripId, caption } = req.body;
+        const userId = Number(req.body.userId);
+        const tripId = Number(req.body.tripId);
+        const { caption } = req.body;
         if (!userId || !tripId) {
             return res.status(400).json({ error: 'User ID and Trip ID required' });
+        }
+
+        if (req.user.id !== userId && !isPrivilegedUser(req.user)) {
+            return res.status(403).json({ error: 'You can only upload photos for yourself' });
+        }
+
+        const membership = await dbGet(
+            'SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?',
+            [tripId, userId]
+        );
+
+        if (!membership && !isPrivilegedUser(req.user)) {
+            return res.status(403).json({ error: 'You must be part of the trip to upload photos' });
         }
 
         // Compress and resize image
@@ -172,7 +201,7 @@ router.get('/user/:userId', (req, res) => {
 });
 
 // Delete photo
-router.delete('/:photoId', (req, res) => {
+router.delete('/:photoId', verifyToken, (req, res) => {
     const { photoId } = req.params;
 
     // Get photo info first
@@ -182,6 +211,10 @@ router.delete('/:photoId', (req, res) => {
         }
         if (!photo) {
             return res.status(404).json({ error: 'Photo not found' });
+        }
+
+        if (photo.user_id !== req.user.id && !isPrivilegedUser(req.user)) {
+            return res.status(403).json({ error: 'You can only delete your own photos' });
         }
 
         // Delete file from filesystem

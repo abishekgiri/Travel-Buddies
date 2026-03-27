@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database.cjs');
 const Amadeus = require('amadeus');
+const { verifyToken } = require('../middleware/auth.cjs');
+
+const isPrivilegedUser = (user) => user && (user.role === 'owner' || user.role === 'admin');
 
 // Initialize Amadeus client
 let amadeusClient = null;
@@ -219,7 +222,7 @@ const generateMockFlights = (from, to, date) => {
 const generateMockGroundTransport = (type, from, to, date) => {
     const carriers = type === 'train' ? ['Eurostar', 'Amtrak', 'TGV', 'Shinkansen'] : ['Greyhound', 'FlixBus', 'Megabus'];
     const trips = [];
-    for (let i = 0; i = 3; i++) {
+    for (let i = 0; i < 3; i++) {
         const carrier = carriers[Math.floor(Math.random() * carriers.length)];
         const num = Math.floor(1000 + Math.random() * 9000);
         const duration = 240 + Math.floor(Math.random() * 300); // 4-9 hours
@@ -305,10 +308,10 @@ router.get('/search', async (req, res) => {
 });
 
 // Join a Journey
-router.post('/join', async (req, res) => {
-    const { user_id, journey } = req.body;
+router.post('/join', verifyToken, async (req, res) => {
+    const { journey } = req.body;
 
-    if (!user_id || !journey) {
+    if (!journey) {
         return res.status(400).json({ error: 'Missing data' });
     }
 
@@ -337,7 +340,7 @@ router.post('/join', async (req, res) => {
             db.run(`
                 INSERT INTO journey_members (journey_id, user_id, status)
                 VALUES (?, ?, 'interested')
-            `, [journeyId, user_id], (err) => {
+            `, [journeyId, req.user.id], (err) => {
                 if (err) {
                     if (err.message.includes('UNIQUE')) resolve(); // Already joined
                     else reject(err);

@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../config';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { API_URL, createAuthHeaders, createSocketOptions } from '../config';
 import { io } from 'socket.io-client';
 import './Chat.css';
 
 const Chat = () => {
     const { user } = useAuth();
+    const location = useLocation();
     const [users, setUsers] = useState([]);
     const [activeChat, setActiveChat] = useState(null);
     const [messageInput, setMessageInput] = useState('');
@@ -22,16 +24,79 @@ const Chat = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    const fetchUsers = useCallback(async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/users`, {
+                headers: createAuthHeaders()
+            });
+            if (!response.ok) throw new Error('Failed to fetch users');
+            const data = await response.json();
+            const otherUsers = data.data.filter(u => u.id !== user?.id);
+            console.log('Chat users loaded:', otherUsers.map(u => ({ name: u.name, avatar: u.avatar })));
+            setUsers(otherUsers);
+
+            const travelerFromState = location.state?.startChatWith;
+            const selectedTraveler = travelerFromState || (
+                localStorage.getItem('selectedTraveler')
+                    ? JSON.parse(localStorage.getItem('selectedTraveler'))
+                    : null
+            );
+
+            if (selectedTraveler) {
+                setActiveChat(selectedTraveler.id);
+                localStorage.removeItem('selectedTraveler');
+            } else if (otherUsers.length > 0) {
+                setActiveChat((prev) => prev ?? otherUsers[0].id);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }, [location.state, user?.id]);
+
+    const fetchMessages = useCallback(async () => {
+        if (!activeChat || !user) {
+            return;
+        }
+
+        try {
+            const convResponse = await fetch(
+                `${API_URL}/api/messages/conversation/${user.id}/${activeChat}`,
+                { headers: createAuthHeaders() }
+            );
+            const convData = await convResponse.json();
+
+            if (convData.data) {
+                const msgResponse = await fetch(
+                    `${API_URL}/api/messages/messages/${convData.data.id}`,
+                    { headers: createAuthHeaders() }
+                );
+                const msgData = await msgResponse.json();
+                setMessages(msgData.data || []);
+
+                socketRef.current?.emit('mark_read', {
+                    conversationId: convData.data.id
+                });
+            } else {
+                setMessages([]);
+            }
+        } catch (err) {
+            console.error(err);
+            setMessages([]);
+        }
+    }, [activeChat, user]);
+
     useEffect(() => {
         if (!user) return;
 
         // Initialize Socket.IO connection
-        socketRef.current = io(API_URL);
+        socketRef.current = io(API_URL, createSocketOptions());
 
         console.log('Socket.IO connecting...');
 
         // User comes online
-        socketRef.current.emit('user_online', user.id);
+        socketRef.current.emit('user_online');
 
         // Listen for online users
         socketRef.current.on('online_users', (userIds) => {
@@ -73,77 +138,24 @@ const Chat = () => {
         fetchUsers();
 
         return () => {
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
             if (socketRef.current) {
                 socketRef.current.disconnect();
             }
         };
-    }, [user]);
+    }, [fetchUsers, user]);
 
     useEffect(() => {
         if (activeChat && user) {
             fetchMessages();
             // Join conversation room
             socketRef.current?.emit('join_conversation', {
-                userId: user.id,
                 otherUserId: activeChat
             });
         }
-    }, [activeChat, user]);
-
-    const fetchUsers = async () => {
-        try {
-            const response = await fetch(`${API_URL}/api/users`);
-            if (!response.ok) throw new Error('Failed to fetch users');
-            const data = await response.json();
-            const otherUsers = data.data.filter(u => u.id !== user?.id);
-            console.log('Chat users loaded:', otherUsers.map(u => ({ name: u.name, avatar: u.avatar })));
-            setUsers(otherUsers);
-
-            // Check if we came from a "Connect" button
-            const selectedTraveler = localStorage.getItem('selectedTraveler');
-            if (selectedTraveler) {
-                const traveler = JSON.parse(selectedTraveler);
-                setActiveChat(traveler.id);
-                localStorage.removeItem('selectedTraveler');
-            } else if (otherUsers.length > 0 && !activeChat) {
-                setActiveChat(otherUsers[0].id);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchMessages = async () => {
-        try {
-            // Get conversation
-            const convResponse = await fetch(
-                `${API_URL}/api/messages/conversation/${user.id}/${activeChat}`
-            );
-            const convData = await convResponse.json();
-
-            if (convData.data) {
-                // Get messages
-                const msgResponse = await fetch(
-                    `${API_URL}/api/messages/messages/${convData.data.id}`
-                );
-                const msgData = await msgResponse.json();
-                setMessages(msgData.data || []);
-
-                // Mark as read
-                socketRef.current?.emit('mark_read', {
-                    conversationId: convData.data.id,
-                    userId: user.id
-                });
-            } else {
-                setMessages([]);
-            }
-        } catch (err) {
-            console.error(err);
-            setMessages([]);
-        }
-    };
+    }, [activeChat, fetchMessages, user]);
 
     const handleSendMessage = (e) => {
         e.preventDefault();
@@ -157,7 +169,6 @@ const Chat = () => {
 
         // Send via Socket.IO
         socketRef.current?.emit('send_message', {
-            senderId: user.id,
             receiverId: activeChat,
             message: messageInput.trim()
         });
@@ -166,7 +177,6 @@ const Chat = () => {
 
         // Stop typing indicator
         socketRef.current?.emit('stop_typing', {
-            senderId: user.id,
             receiverId: activeChat
         });
     };
@@ -178,7 +188,6 @@ const Chat = () => {
 
         // Send typing indicator
         socketRef.current?.emit('typing', {
-            senderId: user.id,
             receiverId: activeChat
         });
 
@@ -190,7 +199,6 @@ const Chat = () => {
         // Stop typing after 2 seconds of inactivity
         typingTimeoutRef.current = setTimeout(() => {
             socketRef.current?.emit('stop_typing', {
-                senderId: user.id,
                 receiverId: activeChat
             });
         }, 2000);

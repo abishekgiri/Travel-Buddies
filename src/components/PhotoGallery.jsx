@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../config';
+import { useAuth } from '../hooks/useAuth';
+import { API_URL, createAuthHeaders } from '../config';
 import './PhotoGallery.css';
 
 const PhotoGallery = ({ tripId, userId }) => {
@@ -10,28 +10,37 @@ const PhotoGallery = ({ tripId, userId }) => {
     const [uploading, setUploading] = useState(false);
     const [caption, setCaption] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
+    const canUpload = !userId || userId === user?.id;
 
     useEffect(() => {
-        fetchPhotos();
-    }, [tripId, userId]);
+        let cancelled = false;
 
-    const fetchPhotos = async () => {
-        try {
-            let url = `http://localhost:3000/api/photos/${tripId}`;
-            if (userId) {
-                url = `${API_URL}/api/photos/user?userId=${userId}`;
+        const loadPhotos = async () => {
+            try {
+                let url = `${API_URL}/api/photos/${tripId}`;
+                if (userId) {
+                    url = `${API_URL}/api/photos/user?userId=${userId}`;
+                }
+                const response = await fetch(url);
+                const data = await response.json();
+                if (!cancelled && data.photos) {
+                    setPhotos(data.photos);
+                }
+            } catch (error) {
+                console.error('Error fetching photos:', error);
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
-            const response = await fetch(url);
-            const data = await response.json();
-            if (data.photos) {
-                setPhotos(data.photos);
-            }
-        } catch (error) {
-            console.error('Error fetching photos:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+
+        loadPhotos();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [tripId, userId]);
 
     const handleFileChange = (e) => {
         if (e.target.files[0]) {
@@ -50,18 +59,19 @@ const PhotoGallery = ({ tripId, userId }) => {
         formData.append('caption', caption);
 
         try {
-            let url = `http://localhost:3000/api/photos/${tripId}`;
+            let url = `${API_URL}/api/photos/${tripId}`;
             if (userId) {
                 url = `${API_URL}/api/photos/user`;
             }
             const response = await fetch(url, {
                 method: 'POST',
+                headers: createAuthHeaders(),
                 body: formData
             });
 
             const data = await response.json();
             if (data.success) {
-                setPhotos([data.photo, ...photos]);
+                setPhotos((prev) => [data.photo, ...prev]);
                 setCaption('');
                 setSelectedFile(null);
                 // Reset file input
@@ -83,32 +93,34 @@ const PhotoGallery = ({ tripId, userId }) => {
         <div className="photo-gallery glass">
             <div className="gallery-header">
                 <h3>📸 {userId ? 'My Photos' : 'Trip Photos'}</h3>
-                <form className="upload-form" onSubmit={handleUpload}>
-                    <input
-                        type="file"
-                        id="photo-upload"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        style={{ display: 'none' }}
-                    />
-                    <label htmlFor="photo-upload" className="btn-secondary upload-btn">
-                        {selectedFile ? selectedFile.name : '+ Add Photo'}
-                    </label>
-                    {selectedFile && (
-                        <>
-                            <input
-                                type="text"
-                                placeholder="Caption..."
-                                value={caption}
-                                onChange={(e) => setCaption(e.target.value)}
-                                className="caption-input"
-                            />
-                            <button type="submit" className="btn-primary" disabled={uploading}>
-                                {uploading ? 'Uploading...' : 'Upload'}
-                            </button>
-                        </>
-                    )}
-                </form>
+                {canUpload && (
+                    <form className="upload-form" onSubmit={handleUpload}>
+                        <input
+                            type="file"
+                            id="photo-upload"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            style={{ display: 'none' }}
+                        />
+                        <label htmlFor="photo-upload" className="btn-secondary upload-btn">
+                            {selectedFile ? selectedFile.name : '+ Add Photo'}
+                        </label>
+                        {selectedFile && (
+                            <>
+                                <input
+                                    type="text"
+                                    placeholder="Caption..."
+                                    value={caption}
+                                    onChange={(e) => setCaption(e.target.value)}
+                                    className="caption-input"
+                                />
+                                <button type="submit" className="btn-primary" disabled={uploading}>
+                                    {uploading ? 'Uploading...' : 'Upload'}
+                                </button>
+                            </>
+                        )}
+                    </form>
+                )}
             </div>
 
             <div className="photos-grid">

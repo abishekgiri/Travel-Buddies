@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
+import { API_URL, createAuthHeaders } from '../config';
 import './ExpenseSplitter.css';
 
 const ExpenseSplitter = ({ budgetId, tripId, currency, onExpenseAdded, onCancel }) => {
@@ -9,34 +10,41 @@ const ExpenseSplitter = ({ budgetId, tripId, currency, onExpenseAdded, onCancel 
         category: 'Food',
         amount: '',
         description: '',
-        paid_by: user.id,
+        paid_by: user?.id || '',
         split_among: [],
         date: new Date().toISOString().split('T')[0]
     });
 
     useEffect(() => {
-        fetchTripMembers();
-    }, [tripId]);
+        const loadTripMembers = async () => {
+            try {
+                const response = await fetch(`${API_URL}/api/trips/${tripId}/members`, {
+                    headers: createAuthHeaders()
+                });
+                const data = await response.json();
+                setMembers(data);
+                setFormData((prev) => ({
+                    ...prev,
+                    paid_by: prev.paid_by || user?.id || '',
+                    split_among: data.map((member) => member.id)
+                }));
+            } catch (error) {
+                console.error('Error fetching members:', error);
+            }
+        };
 
-    const fetchTripMembers = async () => {
-        try {
-            const response = await fetch(`http://localhost:3000/api/trips/${tripId}/members`);
-            const data = await response.json();
-            setMembers(data);
-            // By default, split among all members
-            setFormData(prev => ({ ...prev, split_among: data.map(m => m.id) }));
-        } catch (error) {
-            console.error('Error fetching members:', error);
+        if (tripId) {
+            loadTripMembers();
         }
-    };
+    }, [tripId, user?.id]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         try {
-            const response = await fetch(`http://localhost:3000/api/budgets/${budgetId}/expenses`, {
+            const response = await fetch(`${API_URL}/api/budgets/${budgetId}/expenses`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     ...formData,
                     currency

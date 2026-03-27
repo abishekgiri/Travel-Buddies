@@ -1,6 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const bcrypt = require('bcrypt');
 
 const dbPath = path.resolve(__dirname, 'travel_buddies.db');
 
@@ -26,6 +25,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
       dislikes TEXT,
       religious_views TEXT,
       relationship_status TEXT,
+      avatar TEXT,
       phone TEXT,
       is_verified BOOLEAN DEFAULT 0,
       verification_code TEXT,
@@ -38,6 +38,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
       } else {
         // Migration: Add columns if they don't exist
         const columns = [
+          "avatar TEXT",
           "phone TEXT",
           "is_verified BOOLEAN DEFAULT 0",
           "verification_code TEXT",

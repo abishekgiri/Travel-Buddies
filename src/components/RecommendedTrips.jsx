@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
+import { API_URL } from '../config';
 import './RecommendedTrips.css';
 
 const RecommendedTrips = ({ limit = 3 }) => {
@@ -9,24 +10,37 @@ const RecommendedTrips = ({ limit = 3 }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (user) {
-            fetchRecommendations();
-        }
-    }, [user]);
+        let cancelled = false;
 
-    const fetchRecommendations = async () => {
-        try {
-            const response = await fetch(
-                `http://localhost:3000/api/recommendations/trips/${user.id}?limit=${limit}`
-            );
-            const data = await response.json();
-            setTrips(data);
-        } catch (error) {
-            console.error('Error fetching recommendations:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        const loadRecommendations = async () => {
+            if (!user) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/api/recommendations/trips/${user.id}?limit=${limit}`
+                );
+                const data = await response.json();
+                if (!cancelled) {
+                    setTrips(Array.isArray(data) ? data : []);
+                }
+            } catch (error) {
+                console.error('Error fetching recommendations:', error);
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadRecommendations();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [limit, user]);
 
     if (!user || loading) return null;
     if (trips.length === 0) return null;

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import EditProfileForm from '../components/EditProfileForm';
 import PhotoGallery from '../components/PhotoGallery';
-import { API_URL } from '../config';
+import { API_URL, createAuthHeaders } from '../config';
 import './Profile.css';
 
 const Profile = () => {
@@ -25,15 +25,11 @@ const Profile = () => {
     const isOwnProfile = !userId || (user && user.id === parseInt(userId));
     const targetUserId = userId ? parseInt(userId) : user?.id;
 
-    useEffect(() => {
-        if (targetUserId) {
-            fetchProfile();
-        }
-    }, [targetUserId]);
-
-    const fetchProfile = async () => {
+    const fetchProfile = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/api/users/${targetUserId}`);
+            const response = await fetch(`${API_URL}/api/users/${targetUserId}`, {
+                headers: createAuthHeaders()
+            });
             if (!response.ok) throw new Error('Failed to fetch profile');
             const data = await response.json();
             setProfileData(data.data);
@@ -42,7 +38,13 @@ const Profile = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [targetUserId]);
+
+    useEffect(() => {
+        if (targetUserId) {
+            fetchProfile();
+        }
+    }, [fetchProfile, targetUserId]);
 
     const handleSave = () => {
         fetchProfile();
@@ -62,6 +64,7 @@ const Profile = () => {
         try {
             const uploadRes = await fetch(`${API_URL}/api/photos/user`, {
                 method: 'POST',
+                headers: createAuthHeaders(),
                 body: formData
             });
             const uploadData = await uploadRes.json();
@@ -69,10 +72,9 @@ const Profile = () => {
             if (uploadData.success) {
                 const updateRes = await fetch(`${API_URL}/api/users/${user.id}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
+                    headers: createAuthHeaders({
+                        'Content-Type': 'application/json'
+                    }),
                     body: JSON.stringify({ cover_photo: uploadData.photo.url })
                 });
 
@@ -93,10 +95,8 @@ const Profile = () => {
     };
 
     const handleMessage = () => {
-        // Navigate to chat with this user
-        // Ideally, we would create a conversation first, but for now let's just go to chat
-        // and let the user select them from the list if they exist, or we could pass state
-        navigate('/chat', { state: { startChatWith: profileData } });
+        localStorage.setItem('selectedTraveler', JSON.stringify(profileData));
+        navigate('/chat');
     };
 
     if (loading) return <div className="container" style={{ paddingTop: '100px' }}>Loading...</div>;
@@ -222,11 +222,9 @@ const Profile = () => {
                                         try {
                                             const response = await fetch(`${API_URL}/api/users/${profileData.id}`, {
                                                 method: 'DELETE',
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                                                },
-                                                body: JSON.stringify({ requester_id: user.id })
+                                                headers: createAuthHeaders({
+                                                    'Content-Type': 'application/json'
+                                                })
                                             });
                                             if (response.ok) {
                                                 alert('User deleted successfully');

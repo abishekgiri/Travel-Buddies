@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../config';
 import './BestActivities.css';
 
 const BestActivities = ({ destination }) => {
@@ -12,7 +13,7 @@ const BestActivities = ({ destination }) => {
 
             setLoading(true);
             try {
-                const response = await fetch('http://localhost:3000/api/ai/recommendations', {
+                const response = await fetch(`${API_URL}/api/ai/recommendations`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ destination })

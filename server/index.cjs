@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const http = require('http');
+const path = require('path');
 const db = require('./database.cjs');
 const authRoutes = require('./routes/auth.cjs');
 const userRoutes = require('./routes/users.cjs');
@@ -31,7 +32,7 @@ app.use(cors({
 app.use(express.json());
 
 // Serve uploaded files
-app.use('/uploads', express.static('server/uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);

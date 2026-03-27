@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_URL } from '../config';
 import './CurrencyConverter.css';
 
 const CurrencyConverter = ({ baseCurrency }) => {
@@ -27,7 +28,7 @@ const CurrencyConverter = ({ baseCurrency }) => {
         setLoading(true);
         try {
             const response = await fetch(
-                `http://localhost:3000/api/budgets/currency/convert?from=${from}&to=${to}&amount=${amount}`
+                `${API_URL}/api/budgets/currency/convert?from=${from}&to=${to}&amount=${amount}`
             );
             const data = await response.json();
             setResult(data);

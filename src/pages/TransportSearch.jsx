@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../config';
+import { useAuth } from '../hooks/useAuth';
+import { API_URL, createAuthHeaders } from '../config';
 import './TransportSearch.css';
 
 const TransportSearch = () => {
@@ -38,8 +38,8 @@ const TransportSearch = () => {
         try {
             const response = await fetch(`${API_URL}/api/transport/join`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.id, journey })
+                headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ journey })
             });
             const data = await response.json();
             if (data.success) {

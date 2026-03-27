@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../config';
+import { useAuth } from '../hooks/useAuth';
+import { API_URL, createAuthHeaders } from '../config';
 import ExpenseSplitter from '../components/ExpenseSplitter';
 import CurrencyConverter from '../components/CurrencyConverter';
 import './BudgetPlanner.css';
@@ -16,29 +16,38 @@ const BudgetPlanner = () => {
     const [showAddExpense, setShowAddExpense] = useState(false);
     const [settlements, setSettlements] = useState([]);
 
-    useEffect(() => {
-        fetchBudget();
-        fetchTrip();
-    }, [tripId]);
+    const fetchSettlements = useCallback(async (budgetId) => {
+        try {
+            const response = await fetch(`${API_URL}/api/budgets/${budgetId}/split`, {
+                headers: createAuthHeaders()
+            });
+            const data = await response.json();
+            setSettlements(data.settlements || []);
+        } catch (error) {
+            console.error('Error fetching settlements:', error);
+        }
+    }, []);
 
-    const fetchTrip = async () => {
+    const fetchTrip = useCallback(async () => {
         try {
             const response = await fetch(`${API_URL}/api/trips/${tripId}`);
             const data = await response.json();
-            setTrip(data);
+            setTrip(data.data);
         } catch (error) {
             console.error('Error fetching trip:', error);
         }
-    };
+    }, [tripId]);
 
-    const fetchBudget = async () => {
+    const fetchBudget = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/api/budgets/${tripId}`);
+            const response = await fetch(`${API_URL}/api/budgets/${tripId}`, {
+                headers: createAuthHeaders()
+            });
             if (response.ok) {
                 const data = await response.json();
                 setBudget(data.budget);
                 setExpenses(data.expenses);
-                fetchSettlements(data.budget.id);
+                await fetchSettlements(data.budget.id);
             } else if (response.status === 404) {
                 // No budget yet
                 setBudget(null);
@@ -49,28 +58,22 @@ const BudgetPlanner = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [fetchSettlements, tripId]);
 
-    const fetchSettlements = async (budgetId) => {
-        try {
-            const response = await fetch(`${API_URL}/api/budgets/${budgetId}/split`);
-            const data = await response.json();
-            setSettlements(data.settlements || []);
-        } catch (error) {
-            console.error('Error fetching settlements:', error);
-        }
-    };
+    useEffect(() => {
+        fetchBudget();
+        fetchTrip();
+    }, [fetchBudget, fetchTrip]);
 
     const createBudget = async (amount, currency) => {
         try {
             const response = await fetch(`${API_URL}/api/budgets`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     trip_id: tripId,
                     total_budget: amount,
                     currency: currency,
-                    created_by: user.id
                 }),
             });
 
@@ -209,7 +212,7 @@ const BudgetPlanner = () => {
                                                     try {
                                                         const res = await fetch(`${API_URL}/api/budgets/settle`, {
                                                             method: 'POST',
-                                                            headers: { 'Content-Type': 'application/json' },
+                                                            headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
                                                             body: JSON.stringify({
                                                                 budget_id: budget.id,
                                                                 from_user: s.from,

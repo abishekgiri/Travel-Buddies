@@ -1,7 +1,7 @@
 import React from 'react';
 import './ItineraryTimeline.css';
 
-const ItineraryTimeline = ({ activities, startDate, endDate }) => {
+const ItineraryTimeline = ({ activities }) => {
     // Group activities by date
     const groupedActivities = activities.reduce((acc, activity) => {
         const date = activity.date ? activity.date.split('T')[0] : 'Unscheduled';
@@ -18,7 +18,7 @@ const ItineraryTimeline = ({ activities, startDate, endDate }) => {
             {sortedDates.length === 0 ? (
                 <p className="empty-message">No activities planned yet. Add some to see your timeline!</p>
             ) : (
-                sortedDates.map((date, index) => (
+                sortedDates.map((date) => (
                     <div key={date} className="timeline-day">
                         <div className="timeline-date">
                             <div className="date-circle"></div>

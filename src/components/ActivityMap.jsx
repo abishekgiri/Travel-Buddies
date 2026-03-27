@@ -31,69 +31,77 @@ const ActivityMap = ({ destination, activities = [] }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (destination) {
-            fetchCoordinates();
-        }
-    }, [destination, activities]);
+        let cancelled = false;
 
-    const fetchCoordinates = async () => {
-        setLoading(true);
-        try {
-            // 1. Get Destination Coordinates (Center)
-            const destRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destination)}&limit=1`);
-            const destData = await destRes.json();
-
-            let mapCenter = [20, 0];
-            let newMarkers = [];
-
-            if (destData && destData.length > 0) {
-                mapCenter = [parseFloat(destData[0].lat), parseFloat(destData[0].lon)];
-                setCenter(mapCenter);
-
-                // Add destination marker
-                newMarkers.push({
-                    id: 'dest',
-                    position: mapCenter,
-                    title: `Trip to ${destination}`,
-                    type: 'destination'
-                });
+        const loadCoordinates = async () => {
+            if (!destination) {
+                setMarkers([]);
+                setLoading(false);
+                return;
             }
 
-            // 2. Get Activity Coordinates (with delay to respect rate limits)
-            // We'll limit to first 5 activities to avoid spamming the API in this demo
-            const activitiesToMap = activities.slice(0, 5);
+            setLoading(true);
 
-            for (const act of activitiesToMap) {
-                // Add a small delay
-                await new Promise(r => setTimeout(r, 1000));
+            try {
+                const destRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destination)}&limit=1`);
+                const destData = await destRes.json();
 
-                try {
-                    const query = `${act.activity}, ${destination}`;
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
-                    const data = await res.json();
+                let mapCenter = [20, 0];
+                const newMarkers = [];
 
-                    if (data && data.length > 0) {
-                        newMarkers.push({
-                            id: act.id || Math.random(),
-                            position: [parseFloat(data[0].lat), parseFloat(data[0].lon)],
-                            title: act.activity,
-                            date: act.date,
-                            type: 'activity'
-                        });
+                if (destData && destData.length > 0) {
+                    mapCenter = [parseFloat(destData[0].lat), parseFloat(destData[0].lon)];
+
+                    newMarkers.push({
+                        id: 'dest',
+                        position: mapCenter,
+                        title: `Trip to ${destination}`,
+                        type: 'destination'
+                    });
+                }
+
+                const activitiesToMap = activities.slice(0, 5);
+                for (const act of activitiesToMap) {
+                    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+                    try {
+                        const query = `${act.activity}, ${destination}`;
+                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+                        const data = await res.json();
+
+                        if (data && data.length > 0) {
+                            newMarkers.push({
+                                id: act.id || `${act.activity}-${act.date || 'unscheduled'}`,
+                                position: [parseFloat(data[0].lat), parseFloat(data[0].lon)],
+                                title: act.activity,
+                                date: act.date,
+                                type: 'activity'
+                            });
+                        }
+                    } catch {
+                        console.warn(`Failed to geocode activity: ${act.activity}`);
                     }
-                } catch (e) {
-                    console.warn(`Failed to geocode activity: ${act.activity}`);
+                }
+
+                if (!cancelled) {
+                    setCenter(mapCenter);
+                    setMarkers(newMarkers);
+                }
+            } catch (error) {
+                console.error('Error fetching map data:', error);
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
                 }
             }
+        };
 
-            setMarkers(newMarkers);
+        loadCoordinates();
 
-        } catch (error) {
-            console.error('Error fetching map data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        return () => {
+            cancelled = true;
+        };
+    }, [destination, activities]);
 
     return (
         <div className="activity-map-container glass" style={{ padding: '1rem', marginTop: '2rem' }}>

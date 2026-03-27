@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';

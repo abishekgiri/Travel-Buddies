@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../config';
+import { useAuth } from '../hooks/useAuth';
+import { API_URL, createAuthHeaders } from '../config';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -11,17 +11,11 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        if (user && user.role !== 'owner' && user.role !== 'admin') {
-            navigate('/');
-            return;
-        }
-        fetchUsers();
-    }, [user, navigate]);
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/api/users`);
+            const response = await fetch(`${API_URL}/api/users`, {
+                headers: createAuthHeaders()
+            });
             if (!response.ok) throw new Error('Failed to fetch users');
             const data = await response.json();
             setUsers(data.data);
@@ -30,7 +24,15 @@ const AdminDashboard = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (user && user.role !== 'owner' && user.role !== 'admin') {
+            navigate('/');
+            return;
+        }
+        fetchUsers();
+    }, [fetchUsers, navigate, user]);
 
     const handleDeleteUser = async (userId) => {
         if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
@@ -38,16 +40,14 @@ const AdminDashboard = () => {
         try {
             const response = await fetch(`${API_URL}/api/users/${userId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({ requester_id: user.id })
+                headers: createAuthHeaders({
+                    'Content-Type': 'application/json'
+                })
             });
 
             if (response.ok) {
                 alert('User deleted successfully');
-                setUsers(users.filter(u => u.id !== userId));
+                setUsers((prev) => prev.filter((u) => u.id !== userId));
             } else {
                 const data = await response.json();
                 alert(data.error || 'Failed to delete user');

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../config';
+import { useAuth } from '../hooks/useAuth';
+import { API_URL, createAuthHeaders } from '../config';
 import './Trips.css';
 
 const Trips = () => {
@@ -20,11 +20,7 @@ const Trips = () => {
         description: ''
     });
 
-    useEffect(() => {
-        fetchTrips();
-    }, [filterDestination]);
-
-    const fetchTrips = async () => {
+    const fetchTrips = useCallback(async () => {
         try {
             const query = filterDestination ? `?destination=${filterDestination}` : '';
             const response = await fetch(`${API_URL}/api/trips${query}`);
@@ -36,7 +32,11 @@ const Trips = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filterDestination]);
+
+    useEffect(() => {
+        fetchTrips();
+    }, [fetchTrips]);
 
     const handleCreateTrip = async (e) => {
         e.preventDefault();
@@ -57,10 +57,9 @@ const Trips = () => {
 
             const response = await fetch(`${API_URL}/api/trips`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     ...newTrip,
-                    creator_id: user.id,
                     latitude: lat,
                     longitude: lon
                 })
@@ -89,8 +88,7 @@ const Trips = () => {
         try {
             const response = await fetch(`${API_URL}/api/trips/${tripId}/join`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.id })
+                headers: createAuthHeaders({ 'Content-Type': 'application/json' })
             });
 
             if (!response.ok) {
