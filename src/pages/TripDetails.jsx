@@ -179,18 +179,10 @@ const TripDetails = () => {
                 <div className="header-actions">
                     {isMember && (
                         <>
-                            <button
-                                className="btn-primary"
-                                onClick={() => navigate(`/trips/${id}/budget`)}
-                                style={{ marginRight: '1rem' }}
-                            >
+                            <button className="btn-primary" onClick={() => navigate(`/trips/${id}/budget`)}>
                                 💰 Budget
                             </button>
-                            <button
-                                className="btn-secondary"
-                                onClick={handleOpenExpenseSplitter}
-                                style={{ marginRight: '1rem' }}
-                            >
+                            <button className="btn-secondary" onClick={handleOpenExpenseSplitter}>
                                 💸 Split Expense
                             </button>
                         </>
@@ -202,8 +194,7 @@ const TripDetails = () => {
                     )}
                     {(isCreator || user.role === 'owner') && (
                         <button
-                            className="btn-secondary"
-                            style={{ marginLeft: '1rem', borderColor: '#ef4444', color: '#ef4444' }}
+                            className="btn-secondary danger-outline"
                             onClick={async () => {
                                 if (confirm('Are you sure you want to delete this trip? This action cannot be undone.')) {
                                     try {
@@ -286,9 +277,8 @@ const TripDetails = () => {
                                         {isMember && (
                                             <>
                                                 <button
-                                                    className="btn-secondary"
+                                                    className="btn-secondary ai-plan-btn"
                                                     onClick={() => setShowAIModal(true)}
-                                                    style={{ marginRight: '0.5rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none', color: 'white' }}
                                                 >
                                                     ✨ AI Plan Trip
                                                 </button>

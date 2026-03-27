@@ -1,235 +1,242 @@
 .trip-details-page {
-    padding-bottom: 2rem;
+    padding-top: 7.3rem;
+    padding-bottom: 3rem;
 }
 
-.trip-header {
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
+.trip-details-page .trip-header {
     position: relative;
     overflow: hidden;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: clamp(1.5rem, 4vw, 2.2rem);
+    margin-bottom: 1.8rem;
+    border-radius: 32px;
 }
 
-.header-content {
+.trip-details-page .trip-header::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg, rgba(10, 8, 6, 0.08), rgba(10, 8, 6, 0.78)),
+        radial-gradient(circle at top right, rgba(240, 138, 75, 0.18), transparent 35%);
+    pointer-events: none;
+}
+
+.trip-details-page .header-content,
+.trip-details-page .header-actions {
     position: relative;
-    z-index: 2;
+    z-index: 1;
 }
 
-.header-content h1 {
-    font-size: 3rem;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+.trip-details-page .header-content h1 {
+    font-size: clamp(2.7rem, 5vw, 4.4rem);
+    margin-bottom: 0.6rem;
 }
 
-.destination {
-    font-size: 1.5rem;
-    color: #e5e7eb;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.dates {
-    color: #d1d5db;
+.trip-details-page .destination {
+    color: rgba(255, 244, 230, 0.92);
     font-size: 1.1rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
 }
 
-.budget {
-    color: #34d399;
-    font-weight: 600;
-    font-size: 1.2rem;
+.trip-details-page .dates {
+    color: rgba(255, 244, 230, 0.74);
+    font-size: 1rem;
+    margin-bottom: 0.45rem;
 }
 
-.header-actions {
-    margin-top: 1.5rem;
+.trip-details-page .budget {
+    color: #8de6a7;
+    font-weight: 700;
+}
+
+.trip-details-page .header-actions {
     display: flex;
-    gap: 1rem;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    margin-top: 1.35rem;
 }
 
-.trip-body {
-    display: grid;
-    grid-template-columns: 1fr 350px;
-    gap: 2rem;
+.trip-details-page .danger-outline {
+    color: #ff9a93;
+    border-color: rgba(255, 120, 112, 0.42);
 }
 
-.section {
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    border-radius: 16px;
-}
-
-.section h2 {
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 0.5rem;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 0.5rem;
-}
-
-.section-header h2 {
-    margin: 0;
-    border: none;
-    padding: 0;
-}
-
-.members-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.member-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.5rem;
-    border-radius: 8px;
-    transition: background 0.2s;
-}
-
-.member-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.member-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #374151;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-}
-
-.member-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.member-name {
-    font-weight: 500;
-}
-
-.member-role {
-    font-size: 0.8rem;
-    color: #9ca3af;
-}
-
-.activity-form {
-    background: rgba(0, 0, 0, 0.2);
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.activity-form input {
-    padding: 0.75rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
+.trip-details-page .ai-plan-btn {
     color: white;
+    border: none;
+    background: linear-gradient(135deg, #4d72f2, #7b5cf1);
+    box-shadow: 0 18px 30px rgba(77, 114, 242, 0.24);
 }
 
-.form-actions {
+.trip-details-page .trip-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 1.25rem;
+}
+
+.trip-details-page .main-content,
+.trip-details-page .sidebar {
+    display: grid;
+    gap: 1.2rem;
+    align-content: start;
+}
+
+.trip-details-page .section {
+    padding: 1.35rem;
+    border-radius: 28px;
+}
+
+.trip-details-page .section h2,
+.trip-details-page .section h3 {
+    margin-bottom: 0.95rem;
+}
+
+.trip-details-page .section p {
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.trip-details-page .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.trip-details-page .tab-btn {
+    padding: 0.88rem 1.15rem;
+    border-radius: 999px;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 226, 187, 0.1);
+    font-weight: 700;
+    transition: transform var(--transition), background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.trip-details-page .tab-btn:hover {
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+.trip-details-page .tab-btn.active {
+    color: white;
+    background: var(--gradient-primary);
+    border-color: transparent;
+    box-shadow: 0 16px 30px rgba(240, 138, 75, 0.22);
+}
+
+.trip-details-page .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid rgba(255, 226, 187, 0.08);
+}
+
+.trip-details-page .section-header h2 {
+    margin: 0;
+}
+
+.trip-details-page .header-actions-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+}
+
+.trip-details-page .activity-form {
+    display: grid;
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 226, 187, 0.08);
+}
+
+.trip-details-page .form-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
+    gap: 0.8rem;
 }
 
-.tabs {
+.trip-details-page .form-group {
+    display: grid;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.trip-details-page .form-group label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.trip-details-page .members-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.trip-details-page .member-item {
     display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
 }
 
-.tab-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    color: #d1d5db;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s;
+.trip-details-page .member-avatar {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.08);
 }
 
-.tab-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
+.trip-details-page .member-info {
+    display: grid;
 }
 
-.tab-btn.active {
-    background: #3b82f6;
-    color: white;
+.trip-details-page .member-name {
+    font-weight: 700;
+}
+
+.trip-details-page .member-role {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
 }
 
 @media (max-width: 1024px) {
-    .trip-body {
+    .trip-details-page .trip-body {
         grid-template-columns: 1fr;
-    }
-
-    .trip-header {
-        padding: 1.5rem;
-    }
-
-    .header-content h1 {
-        font-size: 2rem;
     }
 }
 
 @media (max-width: 768px) {
     .trip-details-page {
-        padding: 0 1rem 2rem;
-        padding-top: 90px;
+        padding-top: 6.8rem;
     }
 
-    .trip-header {
-        margin-bottom: 1.5rem;
-        border-radius: 12px;
+    .trip-details-page .trip-header {
+        border-radius: 26px;
     }
 
-    .header-actions {
+    .trip-details-page .section-header,
+    .trip-details-page .form-actions {
         flex-direction: column;
+        align-items: stretch;
     }
 
-    .header-actions button {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .tabs {
+    .trip-details-page .tabs {
         overflow-x: auto;
-        padding-bottom: 0.5rem;
-        margin-bottom: 1rem;
-        -webkit-overflow-scrolling: touch;
-        gap: 0.5rem;
-    }
-
-    .tab-btn {
-        white-space: nowrap;
-        padding: 0.6rem 1.2rem;
-        font-size: 0.9rem;
-    }
-
-    .section {
-        padding: 1rem;
-    }
-
-    .section h2 {
-        font-size: 1.2rem;
+        flex-wrap: nowrap;
+        padding-bottom: 0.25rem;
     }
 }

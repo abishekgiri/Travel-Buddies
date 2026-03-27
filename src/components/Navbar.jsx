@@ -15,7 +15,7 @@ const Navbar = () => {
         <nav className="navbar glass">
             <div className="container navbar-content">
                 <Link to="/" className="logo">
-                    <img src="/logo.png" alt="TravelBuddies" style={{ height: '40px', marginRight: '10px' }} />
+                    <img src="/logo.png" alt="TravelBuddies" className="logo-image" />
                     <span>Travel<span className="logo-highlight">Buddies</span></span>
                 </Link>
 
@@ -25,7 +25,11 @@ const Navbar = () => {
                     <Link to="/trips" onClick={() => setIsMenuOpen(false)}>Trips</Link>
                     <Link to="/transport" onClick={() => setIsMenuOpen(false)}>Transport</Link>
                     {user && <Link to="/chat" onClick={() => setIsMenuOpen(false)}>Chat</Link>}
-                    {user && user.role === 'owner' && <Link to="/admin" onClick={() => setIsMenuOpen(false)} style={{ color: '#ffd700' }}>Admin</Link>}
+                    {user && user.role === 'owner' && (
+                        <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="nav-admin-link">
+                            Admin
+                        </Link>
+                    )}
                 </div>
 
                 <div className="nav-auth">
@@ -49,7 +53,7 @@ const Navbar = () => {
                             </div>
                         </>
                     ) : (
-                        <Link to="/login" className="btn-primary" onClick={() => setIsMenuOpen(false)} style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
+                        <Link to="/login" className="btn-primary nav-login" onClick={() => setIsMenuOpen(false)}>
                             Login
                         </Link>
                     )}

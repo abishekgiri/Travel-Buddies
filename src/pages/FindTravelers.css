@@ -158,17 +158,17 @@
     z-index: 2;
 }
 
-.card-header {
+.find-travelers-page .card-header {
     display: flex;
     align-items: center;
     gap: 1rem;
 }
 
-.avatar-container {
+.find-travelers-page .avatar-container {
     position: relative;
 }
 
-.avatar {
+.find-travelers-page .avatar {
     width: 60px;
     height: 60px;
     background: var(--bg-secondary);
@@ -181,13 +181,13 @@
     border: 2px solid var(--glass-border);
 }
 
-.avatar img {
+.find-travelers-page .avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.status-indicator {
+.find-travelers-page .status-indicator {
     position: absolute;
     bottom: 2px;
     right: 2px;
@@ -197,26 +197,26 @@
     border: 2px solid var(--bg-primary);
 }
 
-.status-indicator.online {
+.find-travelers-page .status-indicator.online {
     background-color: #10b981;
 }
 
-.status-indicator.offline {
+.find-travelers-page .status-indicator.offline {
     background-color: var(--text-secondary);
 }
 
-.header-info h3 {
+.find-travelers-page .header-info h3 {
     font-size: 1.1rem;
     margin-bottom: 0.2rem;
     color: var(--text-primary);
 }
 
-.location {
+.find-travelers-page .location {
     font-size: 0.85rem;
     color: var(--text-secondary);
 }
 
-.destination-badge {
+.find-travelers-page .destination-badge {
     background: rgba(232, 149, 111, 0.1);
     padding: 0.75rem;
     border-radius: 10px;
@@ -224,25 +224,25 @@
     border: 1px solid var(--glass-border);
 }
 
-.destination-badge span {
+.find-travelers-page .destination-badge span {
     display: block;
     font-size: 0.8rem;
     color: var(--text-secondary);
     margin-bottom: 0.2rem;
 }
 
-.destination-badge strong {
+.find-travelers-page .destination-badge strong {
     color: var(--accent-primary);
 }
 
-.interests-tags {
+.find-travelers-page .interests-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
     margin-bottom: 1rem;
 }
 
-.tag {
+.find-travelers-page .tag {
     font-size: 0.8rem;
     padding: 4px 10px;
     background: var(--bg-secondary);
@@ -251,7 +251,7 @@
     border: 1px solid var(--glass-border);
 }
 
-.card-actions {
+.find-travelers-page .card-actions {
     margin-top: auto;
     display: flex;
     gap: 10px;

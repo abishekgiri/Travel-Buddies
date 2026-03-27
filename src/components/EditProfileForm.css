@@ -1,88 +1,71 @@
 .edit-profile-form {
-    padding: 2rem;
-    border-radius: 16px;
-    max-width: 800px;
+    max-width: 860px;
     margin: 0 auto;
+    padding: 2rem;
+    border-radius: 32px;
 }
 
 .edit-profile-form h2 {
     text-align: center;
-    margin-bottom: 2rem;
-    color: var(--text-primary);
+    margin-bottom: 1.8rem;
+    font-size: clamp(2rem, 4vw, 3rem);
 }
 
-.avatar-section {
+.edit-profile-form .avatar-section {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.8rem;
 }
 
-.helper-text {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
+.edit-profile-form .helper-text {
     margin-top: 0.5rem;
-}
-
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.form-group.full-width {
-    grid-column: 1 / -1;
-    margin-bottom: 1.5rem;
-}
-
-.form-group label {
-    font-size: 0.9rem;
-    font-weight: 500;
     color: var(--text-secondary);
+    font-size: 0.9rem;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
-    padding: 0.8rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.2);
-    color: var(--text-primary);
-    font-size: 1rem;
-    transition: all 0.3s ease;
+.edit-profile-form .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: var(--primary);
-    background: rgba(0, 0, 0, 0.3);
+.edit-profile-form .form-group {
+    display: grid;
+    gap: 0.45rem;
 }
 
-.form-actions {
+.edit-profile-form .form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.edit-profile-form .form-group label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.edit-profile-form .form-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 0.8rem;
+    margin-top: 1.6rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid rgba(255, 226, 187, 0.08);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     .edit-profile-form {
-        padding: 1rem;
+        padding: 1.3rem;
+        border-radius: 26px;
     }
 
-    .form-grid {
+    .edit-profile-form .form-grid {
         grid-template-columns: 1fr;
+    }
+
+    .edit-profile-form .form-actions {
+        flex-direction: column;
     }
 }

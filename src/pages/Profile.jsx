@@ -154,7 +154,7 @@ const Profile = () => {
                         <div className="name-section">
                             <h1>{profileData.name}</h1>
                             <span className="location">📍 {profileData.location}</span>
-                            {profileData.role === 'owner' && <span className="tag" style={{ background: 'gold', color: 'black', marginLeft: '10px' }}>Owner</span>}
+                            {profileData.role === 'owner' && <span className="tag owner-tag">Owner</span>}
                         </div>
                         <p className="bio">
                             {profileData.bio || 'No bio yet.'}
@@ -184,20 +184,20 @@ const Profile = () => {
                             </div>
                         </div>
 
-                        <div className="interests-section" style={{ marginTop: '1rem' }}>
+                        <div className="interests-section spaced">
                             <h3>Likes</h3>
                             <div className="interests-tags">
                                 {(profileData.likes || []).map((tag, i) => (
-                                    <span key={i} className="tag" style={{ background: 'rgba(74, 222, 128, 0.2)', color: '#4ade80' }}>{tag}</span>
+                                    <span key={i} className="tag like-tag">{tag}</span>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="interests-section" style={{ marginTop: '1rem' }}>
+                        <div className="interests-section spaced">
                             <h3>Dislikes</h3>
                             <div className="interests-tags">
                                 {(profileData.dislikes || []).map((tag, i) => (
-                                    <span key={i} className="tag" style={{ background: 'rgba(248, 113, 113, 0.2)', color: '#f87171' }}>{tag}</span>
+                                    <span key={i} className="tag dislike-tag">{tag}</span>
                                 ))}
                             </div>
                         </div>
@@ -215,8 +215,7 @@ const Profile = () => {
 
                         {user.role === 'owner' && !isOwnProfile && (
                             <button
-                                className="btn-secondary"
-                                style={{ marginLeft: '1rem', borderColor: '#ef4444', color: '#ef4444' }}
+                                className="btn-secondary danger-outline"
                                 onClick={async () => {
                                     if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
                                         try {
@@ -245,20 +244,10 @@ const Profile = () => {
                     </div>
 
                     {isOwnProfile && (
-                        <div className="logout-section" style={{ marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                        <div className="logout-section">
                             <button
                                 onClick={handleLogout}
-                                className="btn-secondary"
-                                style={{
-                                    color: '#ef4444',
-                                    borderColor: '#ef4444',
-                                    width: '100%',
-                                    maxWidth: '200px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem'
-                                }}
+                                className="btn-secondary danger-outline logout-button"
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>

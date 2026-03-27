@@ -1,87 +1,63 @@
 .admin-trip-creator-page {
-    padding-top: 100px;
-    padding-bottom: 60px;
     min-height: 100vh;
+    padding-top: 7.4rem;
+    padding-bottom: 4rem;
 }
 
-.creator-card {
-    max-width: 800px;
+.admin-trip-creator-page .creator-card {
+    max-width: 860px;
     margin: 0 auto;
     padding: 2rem;
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 32px;
 }
 
-.card-header {
+.admin-trip-creator-page .card-header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.8rem;
 }
 
-.card-header h2 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.admin-trip-creator-page .card-header h2 {
+    font-size: clamp(2rem, 4vw, 3.1rem);
+    margin-bottom: 0.45rem;
 }
 
-.card-header p {
+.admin-trip-creator-page .card-header p {
     color: var(--text-secondary);
 }
 
-.creator-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.form-row {
+.admin-trip-creator-page .creator-form {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
 }
 
-.form-group label {
+.admin-trip-creator-page .form-group {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.admin-trip-creator-page .form-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.admin-trip-creator-page .form-group label {
     color: var(--text-secondary);
     font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.form-group input,
-.form-group textarea {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 1rem;
-    color: var(--text-primary);
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.form-group textarea {
-    resize: vertical;
+    font-weight: 600;
 }
 
 @media (max-width: 768px) {
-    .form-row {
-        grid-template-columns: 1fr;
+    .admin-trip-creator-page {
+        padding-top: 6.8rem;
     }
 
-    .creator-card {
-        padding: 1.5rem;
+    .admin-trip-creator-page .creator-card {
+        padding: 1.4rem;
+        border-radius: 26px;
+    }
+
+    .admin-trip-creator-page .form-row {
+        grid-template-columns: 1fr;
     }
 }
