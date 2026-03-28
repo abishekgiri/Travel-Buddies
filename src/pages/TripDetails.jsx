@@ -27,6 +27,7 @@ const TripDetails = () => {
     const [showActivityForm, setShowActivityForm] = useState(false);
     const [showExpenseSplitter, setShowExpenseSplitter] = useState(false);
     const [budgetId, setBudgetId] = useState(null);
+    const [budgetCurrency, setBudgetCurrency] = useState('USD');
     const [showAIModal, setShowAIModal] = useState(false);
     const [aiInterests, setAiInterests] = useState('');
     const [generatingAI, setGeneratingAI] = useState(false);
@@ -36,7 +37,7 @@ const TripDetails = () => {
         try {
             const response = await fetch(`${API_URL}/api/ai/generate-itinerary`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     tripId: id,
                     destination: trip.destination,
@@ -117,37 +118,49 @@ const TripDetails = () => {
     };
 
     const handleOpenExpenseSplitter = async () => {
+        if (!user) {
+            alert('Please log in to manage trip expenses.');
+            return;
+        }
+
         try {
-            // Check if budget exists
             const res = await fetch(`${API_URL}/api/budgets/${id}`, {
                 headers: createAuthHeaders()
             });
             if (res.ok) {
                 const data = await res.json();
                 setBudgetId(data.budget.id);
+                setBudgetCurrency(data.budget.currency || 'USD');
                 setShowExpenseSplitter(true);
-            } else {
-                // Create default budget if not exists
-                const createRes = await fetch(`${API_URL}/api/budgets`, {
-                    method: 'POST',
-                    headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
-                    body: JSON.stringify({
-                        trip_id: id,
-                        total_budget: trip.budget || 1000,
-                        currency: 'USD'
-                    })
-                });
-                if (createRes.ok) {
-                    const data = await createRes.json();
-                    setBudgetId(data.id);
-                    setShowExpenseSplitter(true);
-                } else {
-                    alert('Failed to initialize budget');
-                }
+                return;
             }
+
+            if (res.status !== 404) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Failed to load budget');
+            }
+
+            const createRes = await fetch(`${API_URL}/api/budgets`, {
+                method: 'POST',
+                headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({
+                    trip_id: id,
+                    total_budget: trip.budget || 1000,
+                    currency: 'USD'
+                })
+            });
+            const data = await createRes.json().catch(() => ({}));
+
+            if (!createRes.ok) {
+                throw new Error(data.error || 'Failed to initialize budget');
+            }
+
+            setBudgetId(data.id);
+            setBudgetCurrency(data.currency || 'USD');
+            setShowExpenseSplitter(true);
         } catch (err) {
             console.error(err);
-            alert('Error accessing budget system');
+            alert(err.message || 'Error accessing budget system');
         }
     };
 
@@ -156,6 +169,8 @@ const TripDetails = () => {
 
     const isMember = trip.members?.some(m => m.user_id === user?.id);
     const isCreator = trip.creator_id === user?.id;
+    const canDeleteTrip = Boolean(user) && (isCreator || user.role === 'owner' || user.role === 'admin');
+    const canUploadTripPhotos = Boolean(user) && isMember;
 
     return (
         <div className="trip-details-page container">
@@ -192,7 +207,7 @@ const TripDetails = () => {
                             Leave Trip
                         </button>
                     )}
-                    {(isCreator || user.role === 'owner') && (
+                    {canDeleteTrip && (
                         <button
                             className="btn-secondary danger-outline"
                             onClick={async () => {
@@ -229,7 +244,7 @@ const TripDetails = () => {
                         <ExpenseSplitter
                             budgetId={budgetId}
                             tripId={id}
-                            currency="USD"
+                            currency={budgetCurrency}
                             onExpenseAdded={() => {
                                 alert('Expense added!');
                                 setShowExpenseSplitter(false);
@@ -373,7 +388,7 @@ const TripDetails = () => {
                             </>
                         )}
 
-                        {activeTab === 'photos' && <PhotoGallery tripId={id} />}
+                        {activeTab === 'photos' && <PhotoGallery tripId={id} allowUpload={canUploadTripPhotos} />}
 
                         {activeTab === 'chat' && <TripChat tripId={id} />}
                     </section>

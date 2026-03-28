@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { API_URL, createAuthHeaders } from '../config';
 import './PhotoGallery.css';
 
-const PhotoGallery = ({ tripId, userId }) => {
+const PhotoGallery = ({ tripId, userId, allowUpload }) => {
     const { user } = useAuth();
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [caption, setCaption] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
-    const canUpload = !userId || userId === user?.id;
+    const fileInputRef = useRef(null);
+    const canUpload = typeof allowUpload === 'boolean'
+        ? allowUpload
+        : Boolean(user) && (!userId || userId === user?.id);
 
     useEffect(() => {
         let cancelled = false;
@@ -50,7 +53,7 @@ const PhotoGallery = ({ tripId, userId }) => {
 
     const handleUpload = async (e) => {
         e.preventDefault();
-        if (!selectedFile) return;
+        if (!selectedFile || !user) return;
 
         setUploading(true);
         const formData = new FormData();
@@ -70,18 +73,19 @@ const PhotoGallery = ({ tripId, userId }) => {
             });
 
             const data = await response.json();
-            if (data.success) {
-                setPhotos((prev) => [data.photo, ...prev]);
-                setCaption('');
-                setSelectedFile(null);
-                // Reset file input
-                document.getElementById('photo-upload').value = '';
-            } else {
-                alert('Failed to upload photo');
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Failed to upload photo');
+            }
+
+            setPhotos((prev) => [data.photo, ...prev]);
+            setCaption('');
+            setSelectedFile(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
             }
         } catch (error) {
             console.error('Error uploading photo:', error);
-            alert('Error uploading photo');
+            alert(error.message || 'Error uploading photo');
         } finally {
             setUploading(false);
         }
@@ -98,6 +102,7 @@ const PhotoGallery = ({ tripId, userId }) => {
                         <input
                             type="file"
                             id="photo-upload"
+                            ref={fileInputRef}
                             accept="image/*"
                             onChange={handleFileChange}
                             style={{ display: 'none' }}

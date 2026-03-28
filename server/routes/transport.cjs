@@ -5,6 +5,33 @@ const Amadeus = require('amadeus');
 const { verifyToken } = require('../middleware/auth.cjs');
 
 const isPrivilegedUser = (user) => user && (user.role === 'owner' || user.role === 'admin');
+const dbGet = (sql, params = []) => new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+    });
+});
+
+const dbAll = (sql, params = []) => new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+    });
+});
+
+const dbRun = (sql, params = []) => new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+        if (err) reject(err);
+        else resolve({ lastID: this.lastID, changes: this.changes });
+    });
+});
+
+const buildJourneyKey = (journey) => [
+    journey.type,
+    journey.carrier || '',
+    journey.transport_number || '',
+    journey.departure_time
+].join('|');
 
 // Initialize Amadeus client
 let amadeusClient = null;
@@ -262,18 +289,13 @@ router.get('/search', async (req, res) => {
 
     try {
         // 1. Search in DB for existing user-created journeys
-        const dbJourneys = await new Promise((resolve, reject) => {
-            db.all(`
-                SELECT * FROM transport_journeys 
-                WHERE type = ? 
-                AND departure_location LIKE ? 
-                AND arrival_location LIKE ? 
-                AND date(departure_time) = date(?)
-            `, [type, `%${from}%`, `%${to}%`, date], (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
+        const dbJourneys = await dbAll(`
+            SELECT * FROM transport_journeys 
+            WHERE type = ? 
+            AND departure_location LIKE ? 
+            AND arrival_location LIKE ? 
+            AND date(departure_time) = date(?)
+        `, [type, `%${from}%`, `%${to}%`, date]);
 
         // 2. Generate Mock Data (simulating external API)
         let mockJourneys = [];
@@ -289,15 +311,26 @@ router.get('/search', async (req, res) => {
         // We attach member counts to DB journeys
 
         const enhancedDbJourneys = await Promise.all(dbJourneys.map(async (j) => {
-            const memberCount = await new Promise((resolve) => {
-                db.get('SELECT COUNT(*) as count FROM journey_members WHERE journey_id = ?', [j.id], (err, row) => {
-                    resolve(row ? row.count : 0);
-                });
-            });
-            return { ...j, member_count: memberCount, source: 'db' };
+            const memberCountRow = await dbGet(
+                'SELECT COUNT(*) as count FROM journey_members WHERE journey_id = ?',
+                [j.id]
+            );
+            return { ...j, member_count: memberCountRow ? memberCountRow.count : 0, source: 'db' };
         }));
+        const journeyMap = new Map();
 
-        const results = [...enhancedDbJourneys, ...mockJourneys.map(j => ({ ...j, member_count: 0, source: 'api' }))];
+        enhancedDbJourneys.forEach((journey) => {
+            journeyMap.set(buildJourneyKey(journey), journey);
+        });
+
+        mockJourneys.forEach((journey) => {
+            const key = buildJourneyKey(journey);
+            if (!journeyMap.has(key)) {
+                journeyMap.set(key, { ...journey, member_count: 0, source: 'api' });
+            }
+        });
+
+        const results = Array.from(journeyMap.values());
 
         res.json({ success: true, data: results });
 
@@ -318,34 +351,60 @@ router.post('/join', verifyToken, async (req, res) => {
     try {
         let journeyId = journey.id;
 
-        // If it's an API result (no ID), create it in DB first
         if (!journeyId) {
-            journeyId = await new Promise((resolve, reject) => {
-                db.run(`
-                    INSERT INTO transport_journeys (type, carrier, transport_number, departure_location, arrival_location, departure_time, arrival_time, duration)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                `, [
-                    journey.type, journey.carrier, journey.transport_number,
-                    journey.departure_location, journey.arrival_location,
-                    journey.departure_time, journey.arrival_time, journey.duration
-                ], function (err) {
-                    if (err) reject(err);
-                    else resolve(this.lastID);
-                });
-            });
+            const existingJourney = await dbGet(
+                `SELECT id FROM transport_journeys
+                 WHERE type = ?
+                   AND COALESCE(carrier, '') = COALESCE(?, '')
+                   AND COALESCE(transport_number, '') = COALESCE(?, '')
+                   AND departure_time = ?`,
+                [journey.type, journey.carrier || '', journey.transport_number || '', journey.departure_time]
+            );
+
+            if (existingJourney) {
+                journeyId = existingJourney.id;
+            } else {
+                try {
+                    const result = await dbRun(`
+                        INSERT INTO transport_journeys (type, carrier, transport_number, departure_location, arrival_location, departure_time, arrival_time, duration)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    `, [
+                        journey.type, journey.carrier, journey.transport_number,
+                        journey.departure_location, journey.arrival_location,
+                        journey.departure_time, journey.arrival_time, journey.duration
+                    ]);
+                    journeyId = result.lastID;
+                } catch (error) {
+                    if (!error.message.includes('UNIQUE')) {
+                        throw error;
+                    }
+
+                    const dedupedJourney = await dbGet(
+                        `SELECT id FROM transport_journeys
+                         WHERE type = ?
+                           AND COALESCE(carrier, '') = COALESCE(?, '')
+                           AND COALESCE(transport_number, '') = COALESCE(?, '')
+                           AND departure_time = ?`,
+                        [journey.type, journey.carrier || '', journey.transport_number || '', journey.departure_time]
+                    );
+
+                    if (!dedupedJourney) {
+                        throw error;
+                    }
+
+                    journeyId = dedupedJourney.id;
+                }
+            }
         }
 
         // Add user to journey members
-        await new Promise((resolve, reject) => {
-            db.run(`
-                INSERT INTO journey_members (journey_id, user_id, status)
-                VALUES (?, ?, 'interested')
-            `, [journeyId, req.user.id], (err) => {
-                if (err) {
-                    if (err.message.includes('UNIQUE')) resolve(); // Already joined
-                    else reject(err);
-                } else resolve();
-            });
+        await dbRun(`
+            INSERT INTO journey_members (journey_id, user_id, status)
+            VALUES (?, ?, 'interested')
+        `, [journeyId, req.user.id]).catch((error) => {
+            if (!error.message.includes('UNIQUE')) {
+                throw error;
+            }
         });
 
         res.json({ success: true, message: 'Joined journey successfully', journeyId });

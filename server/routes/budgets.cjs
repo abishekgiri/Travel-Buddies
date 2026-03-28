@@ -200,7 +200,25 @@ router.post('/:id/expenses', verifyToken, async (req, res) => {
             return res.status(400).json({ error: 'The selected payer is not part of this trip' });
         }
 
-        const splitJson = JSON.stringify(Array.isArray(split_among) ? split_among : []);
+        const splitIds = Array.isArray(split_among)
+            ? [...new Set(split_among.map((value) => Number(value)).filter(Boolean))]
+            : [];
+
+        if (splitIds.length === 0) {
+            return res.status(400).json({ error: 'Select at least one trip member to split this expense with' });
+        }
+
+        const membershipPlaceholders = splitIds.map(() => '?').join(',');
+        const splitMembers = await dbAll(
+            `SELECT user_id FROM trip_members WHERE trip_id = ? AND user_id IN (${membershipPlaceholders})`,
+            [budget.trip_id, ...splitIds]
+        );
+
+        if (splitMembers.length !== splitIds.length) {
+            return res.status(400).json({ error: 'All selected split members must belong to this trip' });
+        }
+
+        const splitJson = JSON.stringify(splitIds);
         const result = await dbRun(
             'INSERT INTO expenses (budget_id, category, amount, currency, description, paid_by, split_among, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [id, category, amount, currency || 'USD', description, payerId, splitJson, date]

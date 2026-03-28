@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Groq = require('groq-sdk');
 const dotenv = require('dotenv');
+const { verifyToken } = require('../middleware/auth.cjs');
 
 dotenv.config();
 
@@ -54,8 +55,15 @@ router.post('/chat', async (req, res) => {
 });
 
 const db = require('../database.cjs');
+const dbGet = (sql, params = []) => new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+    });
+});
+const isPrivilegedUser = (user) => user && (user.role === 'owner' || user.role === 'admin');
 
-router.post('/generate-itinerary', async (req, res) => {
+router.post('/generate-itinerary', verifyToken, async (req, res) => {
     const { tripId, destination, startDate, endDate, interests } = req.body;
 
     if (!tripId || !destination || !startDate || !endDate) {
@@ -63,6 +71,17 @@ router.post('/generate-itinerary', async (req, res) => {
     }
 
     try {
+        if (!isPrivilegedUser(req.user)) {
+            const membership = await dbGet(
+                'SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?',
+                [tripId, req.user.id]
+            );
+
+            if (!membership) {
+                return res.status(403).json({ error: 'You must be part of this trip to generate an itinerary' });
+            }
+        }
+
         const prompt = `
             Generate a day-by-day itinerary for a trip to ${destination} from ${startDate} to ${endDate}.
             The traveler is interested in: ${interests || 'general sightseeing'}.

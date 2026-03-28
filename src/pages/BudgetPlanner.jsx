@@ -13,6 +13,7 @@ const BudgetPlanner = () => {
     const [expenses, setExpenses] = useState([]);
     const [trip, setTrip] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [showAddExpense, setShowAddExpense] = useState(false);
     const [settlements, setSettlements] = useState([]);
 
@@ -31,10 +32,14 @@ const BudgetPlanner = () => {
     const fetchTrip = useCallback(async () => {
         try {
             const response = await fetch(`${API_URL}/api/trips/${tripId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch trip');
+            }
             const data = await response.json();
             setTrip(data.data);
         } catch (error) {
             console.error('Error fetching trip:', error);
+            setError(error.message);
         }
     }, [tripId]);
 
@@ -47,14 +52,21 @@ const BudgetPlanner = () => {
                 const data = await response.json();
                 setBudget(data.budget);
                 setExpenses(data.expenses);
+                setError('');
                 await fetchSettlements(data.budget.id);
             } else if (response.status === 404) {
-                // No budget yet
                 setBudget(null);
                 setExpenses([]);
+                setError('');
+            } else {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || 'Failed to fetch budget');
             }
         } catch (error) {
             console.error('Error fetching budget:', error);
+            setBudget(null);
+            setExpenses([]);
+            setError(error.message);
         } finally {
             setLoading(false);
         }
@@ -77,11 +89,15 @@ const BudgetPlanner = () => {
                 }),
             });
 
-            if (response.ok) {
-                await fetchBudget();
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to create budget');
             }
+
+            await fetchBudget();
         } catch (error) {
             console.error('Error creating budget:', error);
+            alert(error.message || 'Error creating budget');
         }
     };
 
@@ -96,7 +112,9 @@ const BudgetPlanner = () => {
     }, 0);
 
     const remaining = budget ? budget.total_budget - totalSpent : 0;
-    const percentSpent = budget ? (totalSpent / budget.total_budget) * 100 : 0;
+    const percentSpent = budget && Number(budget.total_budget) > 0
+        ? (totalSpent / budget.total_budget) * 100
+        : 0;
 
     const categoryTotals = expenses.reduce((acc, exp) => {
         acc[exp.category] = (acc[exp.category] || 0) + parseFloat(exp.amount);
@@ -104,6 +122,7 @@ const BudgetPlanner = () => {
     }, {});
 
     if (loading) return <div className="container">Loading...</div>;
+    if (error) return <div className="container">Error: {error}</div>;
 
     return (
         <div className="budget-planner container">
@@ -183,7 +202,7 @@ const BudgetPlanner = () => {
                                         <div className="category-bar">
                                             <div
                                                 className="category-fill"
-                                                style={{ width: `${(total / budget.total_budget) * 100}%` }}
+                                                style={{ width: `${budget.total_budget > 0 ? (total / budget.total_budget) * 100 : 0}%` }}
                                             ></div>
                                         </div>
                                     </div>

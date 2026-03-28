@@ -18,11 +18,21 @@ const Chat = () => {
     const socketRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const activeChatRef = useRef(null);
+    const userIdRef = useRef(null);
 
     // Auto-scroll to bottom when messages change
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    useEffect(() => {
+        activeChatRef.current = activeChat;
+    }, [activeChat]);
+
+    useEffect(() => {
+        userIdRef.current = user?.id ?? null;
+    }, [user?.id]);
 
     const fetchUsers = useCallback(async () => {
         try {
@@ -32,7 +42,6 @@ const Chat = () => {
             if (!response.ok) throw new Error('Failed to fetch users');
             const data = await response.json();
             const otherUsers = data.data.filter(u => u.id !== user?.id);
-            console.log('Chat users loaded:', otherUsers.map(u => ({ name: u.name, avatar: u.avatar })));
             setUsers(otherUsers);
 
             const travelerFromState = location.state?.startChatWith;
@@ -90,23 +99,14 @@ const Chat = () => {
     useEffect(() => {
         if (!user) return;
 
-        // Initialize Socket.IO connection
         socketRef.current = io(API_URL, createSocketOptions());
-
-        console.log('Socket.IO connecting...');
-
-        // User comes online
         socketRef.current.emit('user_online');
 
-        // Listen for online users
         socketRef.current.on('online_users', (userIds) => {
-            console.log('Online users:', userIds);
             setOnlineUsers(userIds);
         });
 
-        // Listen for user status changes
         socketRef.current.on('user_status', ({ userId, status }) => {
-            console.log('User status changed:', userId, status);
             setOnlineUsers(prev => {
                 if (status === 'online') {
                     return [...new Set([...prev, userId])];
@@ -116,13 +116,25 @@ const Chat = () => {
             });
         });
 
-        // Listen for new messages
         socketRef.current.on('new_message', (message) => {
-            console.log('New message received:', message);
-            setMessages(prev => [...prev, message]);
+            const currentUserId = userIdRef.current;
+            const currentActiveChat = activeChatRef.current;
+
+            if (!currentUserId || !currentActiveChat) {
+                return;
+            }
+
+            const belongsToActiveConversation =
+                (message.sender_id === currentUserId && message.receiver_id === currentActiveChat) ||
+                (message.sender_id === currentActiveChat && message.receiver_id === currentUserId);
+
+            if (!belongsToActiveConversation) {
+                return;
+            }
+
+            setMessages((prev) => prev.some((existing) => existing.id === message.id) ? prev : [...prev, message]);
         });
 
-        // Listen for typing indicators
         socketRef.current.on('user_typing', ({ userId }) => {
             setTypingUsers(prev => new Set([...prev, userId]));
         });
@@ -150,7 +162,7 @@ const Chat = () => {
     useEffect(() => {
         if (activeChat && user) {
             fetchMessages();
-            // Join conversation room
+            setTypingUsers(new Set());
             socketRef.current?.emit('join_conversation', {
                 otherUserId: activeChat
             });
@@ -161,13 +173,6 @@ const Chat = () => {
         e.preventDefault();
         if (!messageInput.trim() || !activeChat) return;
 
-        console.log('Sending message:', {
-            senderId: user.id,
-            receiverId: activeChat,
-            message: messageInput.trim()
-        });
-
-        // Send via Socket.IO
         socketRef.current?.emit('send_message', {
             receiverId: activeChat,
             message: messageInput.trim()
@@ -175,7 +180,6 @@ const Chat = () => {
 
         setMessageInput('');
 
-        // Stop typing indicator
         socketRef.current?.emit('stop_typing', {
             receiverId: activeChat
         });
@@ -186,17 +190,14 @@ const Chat = () => {
 
         if (!activeChat) return;
 
-        // Send typing indicator
         socketRef.current?.emit('typing', {
             receiverId: activeChat
         });
 
-        // Clear previous timeout
         if (typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current);
         }
 
-        // Stop typing after 2 seconds of inactivity
         typingTimeoutRef.current = setTimeout(() => {
             socketRef.current?.emit('stop_typing', {
                 receiverId: activeChat

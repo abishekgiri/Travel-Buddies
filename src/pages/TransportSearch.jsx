@@ -42,13 +42,15 @@ const TransportSearch = () => {
                 body: JSON.stringify({ journey })
             });
             const data = await response.json();
-            if (data.success) {
-                alert('You have joined this trip! You can now see other buddies.');
-                // Refresh results to update member count
-                handleSearch({ preventDefault: () => { } });
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Failed to join this trip');
             }
+
+            alert('You have joined this trip! You can now see other buddies.');
+            handleSearch({ preventDefault: () => { } });
         } catch (error) {
             console.error('Join error:', error);
+            alert(error.message || 'Failed to join this trip');
         } finally {
             setJoining(null);
         }

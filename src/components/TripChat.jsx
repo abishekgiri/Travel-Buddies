@@ -8,6 +8,8 @@ const TripChat = ({ tripId }) => {
     const { user } = useAuth();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const socketRef = useRef(null);
     const messagesEndRef = useRef(null);
 
@@ -16,21 +18,41 @@ const TripChat = ({ tripId }) => {
     }, []);
 
     const fetchMessages = useCallback(async () => {
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+
         try {
             const response = await fetch(`${API_URL}/api/trips/${tripId}/messages`, {
                 headers: createAuthHeaders()
             });
             const data = await response.json();
-            if (data.success) {
-                setMessages(data.data);
-                scrollToBottom();
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to fetch messages');
             }
+
+            setMessages(data.data || []);
+            setError('');
+            scrollToBottom();
         } catch (error) {
             console.error('Failed to fetch messages:', error);
+            setMessages([]);
+            setError(error.message);
+        } finally {
+            setLoading(false);
         }
-    }, [scrollToBottom, tripId]);
+    }, [scrollToBottom, tripId, user]);
 
     useEffect(() => {
+        if (!user) {
+            setMessages([]);
+            setError('');
+            setLoading(false);
+            return undefined;
+        }
+
+        setLoading(true);
         const newSocket = io(API_URL, createSocketOptions());
         socketRef.current = newSocket;
 
@@ -39,32 +61,27 @@ const TripChat = ({ tripId }) => {
 
         newSocket.on('new_trip_message', (message) => {
             setMessages((prev) => {
-                // Avoid duplicates if we optimistically added it or if socket sends it back
                 if (prev.some(m => m.id === message.id)) return prev;
                 return [...prev, message];
             });
             scrollToBottom();
         });
 
-        const initialLoadTimer = window.setTimeout(() => {
-            fetchMessages();
-        }, 0);
+        fetchMessages();
 
         return () => {
-            window.clearTimeout(initialLoadTimer);
             newSocket.disconnect();
         };
-    }, [fetchMessages, scrollToBottom, tripId, user.id]);
+    }, [fetchMessages, scrollToBottom, tripId, user]);
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim()) return;
+        if (!user || !newMessage.trim()) return;
 
         const messageContent = newMessage;
         setNewMessage('');
 
         try {
-            // Send to backend
             const response = await fetch(`${API_URL}/api/trips/${tripId}/messages`, {
                 method: 'POST',
                 headers: createAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -74,18 +91,19 @@ const TripChat = ({ tripId }) => {
             });
             const data = await response.json();
 
-            if (data.success) {
-                // Emit to socket for others
-                socketRef.current?.emit('send_trip_message', {
-                    tripId,
-                    messageId: data.data.id
-                });
-
-                // We rely on the socket to update our own UI to keep it in sync
-                // But we could also update state here with data.data
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to send message');
             }
+
+            setError('');
+            socketRef.current?.emit('send_trip_message', {
+                tripId,
+                messageId: data.data.id
+            });
         } catch (error) {
             console.error('Failed to send message:', error);
+            setError(error.message);
+            setNewMessage(messageContent);
         }
     };
 
@@ -108,6 +126,17 @@ const TripChat = ({ tripId }) => {
     };
 
     const pinnedMessages = messages.filter(m => m.is_pinned);
+
+    if (!user) {
+        return (
+            <div className="trip-chat glass">
+                <div className="chat-header">
+                    <h3>💬 Trip Chat</h3>
+                </div>
+                <div className="trip-chat-state">Log in and join this trip to access the group chat.</div>
+            </div>
+        );
+    }
 
     return (
         <div className="trip-chat glass">
@@ -134,40 +163,46 @@ const TripChat = ({ tripId }) => {
             )}
 
             <div className="messages-list">
-                {messages.map((msg) => (
-                    <div
-                        key={msg.id}
-                        className={`message-item ${msg.sender_id === user.id ? 'own-message' : ''}`}
-                    >
-                        {msg.sender_id !== user.id && (
-                            <div className="message-avatar">
-                                {msg.sender_avatar && (msg.sender_avatar.startsWith('/') || msg.sender_avatar.startsWith('http')) ? (
-                                    <img src={msg.sender_avatar.startsWith('/') ? `${API_URL}${msg.sender_avatar}` : msg.sender_avatar} alt={msg.sender_name} />
-                                ) : (
-                                    <span>{msg.sender_avatar || '👤'}</span>
-                                )}
-                            </div>
-                        )}
-                        <div className="message-content">
-                            {msg.sender_id !== user.id && <div className="message-sender">{msg.sender_name}</div>}
-                            <div className="message-bubble">
-                                {msg.message}
-                            </div>
-                            <div className="message-actions">
-                                <span className="message-time">
-                                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                                <button
-                                    className={`pin-btn ${msg.is_pinned ? 'active' : ''}`}
-                                    onClick={() => handlePinMessage(msg.id, msg.is_pinned)}
-                                    title="Pin Message"
-                                >
-                                    📌
-                                </button>
+                {loading ? (
+                    <div className="trip-chat-state">Loading chat...</div>
+                ) : error ? (
+                    <div className="trip-chat-state">{error}</div>
+                ) : (
+                    messages.map((msg) => (
+                        <div
+                            key={msg.id}
+                            className={`message-item ${msg.sender_id === user.id ? 'own-message' : ''}`}
+                        >
+                            {msg.sender_id !== user.id && (
+                                <div className="message-avatar">
+                                    {msg.sender_avatar && (msg.sender_avatar.startsWith('/') || msg.sender_avatar.startsWith('http')) ? (
+                                        <img src={msg.sender_avatar.startsWith('/') ? `${API_URL}${msg.sender_avatar}` : msg.sender_avatar} alt={msg.sender_name} />
+                                    ) : (
+                                        <span>{msg.sender_avatar || '👤'}</span>
+                                    )}
+                                </div>
+                            )}
+                            <div className="message-content">
+                                {msg.sender_id !== user.id && <div className="message-sender">{msg.sender_name}</div>}
+                                <div className="message-bubble">
+                                    {msg.message}
+                                </div>
+                                <div className="message-actions">
+                                    <span className="message-time">
+                                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                    <button
+                                        className={`pin-btn ${msg.is_pinned ? 'active' : ''}`}
+                                        onClick={() => handlePinMessage(msg.id, msg.is_pinned)}
+                                        title="Pin Message"
+                                    >
+                                        📌
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    ))
+                )}
                 <div ref={messagesEndRef} />
             </div>
 
@@ -178,8 +213,9 @@ const TripChat = ({ tripId }) => {
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type a message..."
                     className="chat-input"
+                    disabled={loading || Boolean(error)}
                 />
-                <button type="submit" className="send-btn">
+                <button type="submit" className="send-btn" disabled={loading || Boolean(error) || !newMessage.trim()}>
                     ➤
                 </button>
             </form>

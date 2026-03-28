@@ -22,6 +22,10 @@ const ExpenseSplitter = ({ budgetId, tripId, currency, onExpenseAdded, onCancel 
                     headers: createAuthHeaders()
                 });
                 const data = await response.json();
+                if (!response.ok || !Array.isArray(data)) {
+                    throw new Error(data.error || 'Failed to load trip members');
+                }
+
                 setMembers(data);
                 setFormData((prev) => ({
                     ...prev,
@@ -30,6 +34,7 @@ const ExpenseSplitter = ({ budgetId, tripId, currency, onExpenseAdded, onCancel 
                 }));
             } catch (error) {
                 console.error('Error fetching members:', error);
+                alert(error.message || 'Error fetching trip members');
             }
         };
 
@@ -40,6 +45,10 @@ const ExpenseSplitter = ({ budgetId, tripId, currency, onExpenseAdded, onCancel 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (formData.split_among.length === 0) {
+            alert('Select at least one trip member to split this expense with.');
+            return;
+        }
 
         try {
             const response = await fetch(`${API_URL}/api/budgets/${budgetId}/expenses`, {
@@ -51,11 +60,15 @@ const ExpenseSplitter = ({ budgetId, tripId, currency, onExpenseAdded, onCancel 
                 }),
             });
 
-            if (response.ok) {
-                onExpenseAdded();
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to add expense');
             }
+
+            onExpenseAdded();
         } catch (error) {
             console.error('Error adding expense:', error);
+            alert(error.message || 'Error adding expense');
         }
     };
 
