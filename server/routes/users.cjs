@@ -51,6 +51,37 @@ const serializeArray = (value) => {
 
 const isPrivilegedUser = (user) => user && (user.role === 'owner' || user.role === 'admin');
 
+const mapUserRow = (row, includePrivateFields = false) => {
+    if (!row) {
+        return null;
+    }
+
+    const user = {
+        id: row.id,
+        name: row.name,
+        role: row.role,
+        location: row.location,
+        destination: row.destination,
+        age: row.age,
+        bio: row.bio,
+        interests: parseJsonArray(row.interests),
+        adventures: parseJsonArray(row.adventures),
+        likes: parseJsonArray(row.likes),
+        dislikes: parseJsonArray(row.dislikes),
+        religious_views: row.religious_views,
+        relationship_status: row.relationship_status,
+        avatar: row.avatar,
+        cover_photo: row.cover_photo
+    };
+
+    if (includePrivateFields) {
+        user.email = row.email;
+        user.phone = row.phone;
+    }
+
+    return user;
+};
+
 // Get all users (for finding travelers)
 router.get('/', optionalAuth, async (req, res) => {
     const includeEmail = isPrivilegedUser(req.user);
@@ -118,15 +149,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const user = {
-            ...row,
-            interests: parseJsonArray(row.interests),
-            adventures: parseJsonArray(row.adventures),
-            likes: parseJsonArray(row.likes),
-            dislikes: parseJsonArray(row.dislikes)
-        };
-
-        res.json({ data: user });
+        res.json({ data: mapUserRow(row, includePrivateFields) });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -185,7 +208,19 @@ router.put('/:id', verifyToken, async (req, res) => {
             targetUserId
         ]);
 
-        res.json({ message: 'User updated successfully', changes: result.changes });
+        const updatedRow = await dbGet(
+            `SELECT id, name, role, email, location, destination, age, bio, interests, adventures,
+                    likes, dislikes, religious_views, relationship_status, avatar, phone, cover_photo
+             FROM users
+             WHERE id = ?`,
+            [targetUserId]
+        );
+
+        res.json({
+            message: 'User updated successfully',
+            changes: result.changes,
+            user: mapUserRow(updatedRow, true)
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

@@ -25,7 +25,7 @@ const Navbar = () => {
                     <Link to="/trips" onClick={() => setIsMenuOpen(false)}>Trips</Link>
                     <Link to="/transport" onClick={() => setIsMenuOpen(false)}>Transport</Link>
                     {user && <Link to="/chat" onClick={() => setIsMenuOpen(false)}>Chat</Link>}
-                    {user && user.role === 'owner' && (
+                    {user && (user.role === 'owner' || user.role === 'admin') && (
                         <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="nav-admin-link">
                             Admin
                         </Link>

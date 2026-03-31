@@ -20,7 +20,7 @@ const AdminTripCreator = () => {
         activities: '' // Comma separated or new line separated
     });
 
-    if (!user || user.role !== 'owner') {
+    if (!user || (user.role !== 'owner' && user.role !== 'admin')) {
         return (
             <div className="container" style={{ paddingTop: '100px', textAlign: 'center' }}>
                 <h2>Access Denied</h2>

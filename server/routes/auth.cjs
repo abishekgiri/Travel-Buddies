@@ -6,6 +6,31 @@ const { sendEmail } = require('../utils/email.cjs');
 
 const router = express.Router();
 
+const parseJsonArray = (value) => {
+    if (!value) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
+const serializeArrayField = (value) => {
+    if (Array.isArray(value)) {
+        return JSON.stringify(value.map((item) => String(item).trim()).filter(Boolean));
+    }
+
+    if (typeof value === 'string') {
+        return JSON.stringify(value.split(',').map((item) => item.trim()).filter(Boolean));
+    }
+
+    return JSON.stringify([]);
+};
+
 // Register
 router.post('/signup', (req, res) => {
     const {
@@ -15,6 +40,11 @@ router.post('/signup', (req, res) => {
 
     if (!name || !email || !password) {
         return res.status(400).json({ error: 'Name, email, and password are required.' });
+    }
+
+    const requestedRole = typeof role === 'string' ? role.trim().toLowerCase() : 'customer';
+    if (requestedRole !== 'customer') {
+        return res.status(403).json({ error: 'Privileged roles cannot be assigned during signup.' });
     }
 
     bcrypt.hash(password, 10, (err, hash) => {
@@ -31,9 +61,9 @@ router.post('/signup', (req, res) => {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`;
 
         const params = [
-            name, email, hash, role || 'customer', location, destination, age, bio,
-            JSON.stringify(interests), JSON.stringify(adventures), JSON.stringify(likes),
-            JSON.stringify(dislikes), religious_views, relationship_status, avatar, phone,
+            name, email, hash, 'customer', location, destination, age, bio,
+            serializeArrayField(interests), serializeArrayField(adventures), serializeArrayField(likes),
+            serializeArrayField(dislikes), religious_views, relationship_status, avatar, phone,
             verificationCode
         ];
 
@@ -132,10 +162,9 @@ router.post('/login', (req, res) => {
             return res.status(400).json({ error: 'User not found.' });
         }
 
-        // Optional: Enforce verification before login
-        // if (!user.is_verified) {
-        //     return res.status(400).json({ error: 'Please verify your email first.' });
-        // }
+        if (!user.is_verified) {
+            return res.status(403).json({ error: 'Please verify your email before logging in.' });
+        }
 
         bcrypt.compare(password, user.password, (err, result) => {
             if (err) {
@@ -162,7 +191,7 @@ router.post('/login', (req, res) => {
                     avatar: user.avatar,
                     location: user.location,
                     destination: user.destination,
-                    interests: JSON.parse(user.interests || '[]')
+                    interests: parseJsonArray(user.interests)
                 }
             });
         });

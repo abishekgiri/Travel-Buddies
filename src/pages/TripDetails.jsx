@@ -65,7 +65,10 @@ const TripDetails = () => {
 
     const fetchTripDetails = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/api/trips/${id}`);
+            const headers = user ? createAuthHeaders() : undefined;
+            const response = await fetch(`${API_URL}/api/trips/${id}`, {
+                headers
+            });
             if (!response.ok) throw new Error('Failed to fetch trip');
             const data = await response.json();
             setTrip(data.data);
@@ -74,7 +77,7 @@ const TripDetails = () => {
         } finally {
             setLoading(false);
         }
-    }, [id]);
+    }, [id, user]);
 
     useEffect(() => {
         fetchTripDetails();
@@ -167,7 +170,9 @@ const TripDetails = () => {
     if (loading) return <div className="container" style={{ paddingTop: '100px' }}>Loading...</div>;
     if (!trip) return <div className="container" style={{ paddingTop: '100px' }}>Trip not found</div>;
 
-    const isMember = trip.members?.some(m => m.user_id === user?.id);
+    const members = trip.members || [];
+    const visibleMemberCount = trip.member_count ?? members.length;
+    const isMember = members.some((member) => member.user_id === user?.id);
     const isCreator = trip.creator_id === user?.id;
     const canDeleteTrip = Boolean(user) && (isCreator || user.role === 'owner' || user.role === 'admin');
     const canUploadTripPhotos = Boolean(user) && isMember;
@@ -399,27 +404,31 @@ const TripDetails = () => {
                     <BestActivities destination={trip.destination} />
 
                     <section className="section glass">
-                        <h3>Trip Members ({trip.members?.length || 0}/{trip.max_travelers})</h3>
+                        <h3>Trip Members ({visibleMemberCount}/{trip.max_travelers})</h3>
                         <div className="members-list">
-                            {trip.members?.map((member) => (
-                                <div key={member.id} className="member-item">
-                                    <div className="member-avatar">
-                                        {member.avatar && (member.avatar.startsWith('/') || member.avatar.startsWith('http')) ? (
-                                            <img
-                                                src={member.avatar.startsWith('/') ? `${API_URL}${member.avatar}` : member.avatar}
-                                                alt={member.name}
-                                                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                                            />
-                                        ) : (
-                                            member.avatar || '👤'
-                                        )}
+                            {trip.can_view_members ? (
+                                members.map((member) => (
+                                    <div key={member.id} className="member-item">
+                                        <div className="member-avatar">
+                                            {member.avatar && (member.avatar.startsWith('/') || member.avatar.startsWith('http')) ? (
+                                                <img
+                                                    src={member.avatar.startsWith('/') ? `${API_URL}${member.avatar}` : member.avatar}
+                                                    alt={member.name}
+                                                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                                                />
+                                            ) : (
+                                                member.avatar || '👤'
+                                            )}
+                                        </div>
+                                        <div className="member-info">
+                                            <span className="member-name">{member.name}</span>
+                                            {member.user_id === trip.creator_id && <span className="member-role">Creator</span>}
+                                        </div>
                                     </div>
-                                    <div className="member-info">
-                                        <span className="member-name">{member.name}</span>
-                                        {member.user_id === trip.creator_id && <span className="member-role">Creator</span>}
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            ) : (
+                                <p>Join this trip to see who else is going.</p>
+                            )}
                         </div>
                     </section>
                 </aside>

@@ -62,9 +62,10 @@ const EditProfileForm = ({ user, initialData, onSave, onCancel }) => {
                 body: JSON.stringify(processedData)
             });
 
-            if (!response.ok) throw new Error('Failed to update profile');
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || 'Failed to update profile');
 
-            onSave();
+            onSave(data.user || processedData);
         } catch (err) {
             alert(err.message);
         } finally {

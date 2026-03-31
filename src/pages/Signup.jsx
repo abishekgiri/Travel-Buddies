@@ -9,7 +9,7 @@ const Signup = () => {
     const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
-        name: '', email: '', password: '', role: 'customer', phone: '',
+        name: '', email: '', password: '', phone: '',
         location: '', destination: '', age: '', bio: '',
         interests: '', adventures: '', likes: '', dislikes: '',
         religious_views: '', relationship_status: '', avatar: '👤'

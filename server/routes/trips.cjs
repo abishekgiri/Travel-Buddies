@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../database.cjs');
-const { requireRole, verifyToken } = require('../middleware/auth.cjs');
+const { optionalAuth, requireRole, verifyToken } = require('../middleware/auth.cjs');
 
 const router = express.Router();
 
@@ -94,12 +94,13 @@ router.get('/', async (req, res) => {
 });
 
 // Get single trip details
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
     const { id } = req.params;
 
     try {
         const trip = await dbGet(
-            `SELECT t.*, u.name as creator_name, u.avatar as creator_avatar, u.email as creator_email
+            `SELECT t.*, u.name as creator_name, u.avatar as creator_avatar,
+                    (SELECT COUNT(*) FROM trip_members WHERE trip_id = t.id) as member_count
              FROM trips t
              JOIN users u ON t.creator_id = u.id
              WHERE t.id = ?`,
@@ -110,13 +111,16 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Trip not found' });
         }
 
-        const members = await dbAll(
-            `SELECT tm.*, u.name, u.avatar, u.location
-             FROM trip_members tm
-             JOIN users u ON tm.user_id = u.id
-             WHERE tm.trip_id = ?`,
-            [id]
-        );
+        const canViewMembers = await canAccessTrip(id, req.user);
+        const members = canViewMembers
+            ? await dbAll(
+                `SELECT tm.id, tm.user_id, tm.status, tm.joined_at, u.name, u.avatar
+                 FROM trip_members tm
+                 JOIN users u ON tm.user_id = u.id
+                 WHERE tm.trip_id = ?`,
+                [id]
+            )
+            : [];
 
         const activities = await dbAll(
             'SELECT * FROM trip_activities WHERE trip_id = ? ORDER BY date',
@@ -127,6 +131,7 @@ router.get('/:id', async (req, res) => {
             success: true,
             data: {
                 ...trip,
+                can_view_members: canViewMembers,
                 members,
                 activities
             }
@@ -151,7 +156,7 @@ router.get('/:id/members', verifyToken, async (req, res) => {
         }
 
         const rows = await dbAll(
-            `SELECT u.id, u.name, u.avatar, u.email 
+            `SELECT u.id, u.name, u.avatar 
              FROM trip_members tm 
              JOIN users u ON tm.user_id = u.id 
              WHERE tm.trip_id = ?`,

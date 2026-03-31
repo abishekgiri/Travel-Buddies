@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { API_URL, createAuthHeaders } from '../config';
 import './AdminDashboard.css';
@@ -65,6 +65,9 @@ const AdminDashboard = () => {
             <div className="dashboard-header glass">
                 <h1>Admin Dashboard</h1>
                 <p>Manage users and platform settings</p>
+                <Link to="/admin/create-trip" className="btn-primary">
+                    Create Curated Trip
+                </Link>
             </div>
 
             <div className="users-section glass">
@@ -105,7 +108,7 @@ const AdminDashboard = () => {
                                     </td>
                                     <td>{u.location || 'N/A'}</td>
                                     <td>
-                                        {u.id !== user.id && (
+                                        {u.id !== user.id && user.role === 'owner' && (
                                             <button
                                                 className="btn-delete-sm"
                                                 onClick={() => handleDeleteUser(u.id)}

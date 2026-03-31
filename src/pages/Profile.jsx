@@ -7,7 +7,7 @@ import { API_URL, createAuthHeaders } from '../config';
 import './Profile.css';
 
 const Profile = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, updateUser } = useAuth();
     const { userId } = useParams(); // Get userId from URL
     const navigate = useNavigate();
 
@@ -46,8 +46,15 @@ const Profile = () => {
         }
     }, [fetchProfile, targetUserId]);
 
-    const handleSave = () => {
-        fetchProfile();
+    const handleSave = (updatedProfile) => {
+        if (updatedProfile) {
+            setProfileData(updatedProfile);
+            if (isOwnProfile) {
+                updateUser(updatedProfile);
+            }
+        } else {
+            fetchProfile();
+        }
         setEditMode(false);
     };
 

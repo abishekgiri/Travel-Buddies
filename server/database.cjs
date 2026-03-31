@@ -59,9 +59,10 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
         // Create default admin/owner if not exists
         db.run(`
-      INSERT OR IGNORE INTO users (name, email, password, role, location, destination, age, bio, interests, adventures, likes, dislikes, religious_views, relationship_status, avatar)
-      VALUES ('Admin Owner', 'admin@travelbuddies.com', '$2b$10$rZ5qH8vK9X.yJ3wN2pL4ZOxYvZ8qH8vK9X.yJ3wN2pL4ZOxYvZ8qH', 'owner', 'Global', 'Everywhere', 30, 'Platform administrator', '["Management", "Travel"]', '["World Tour"]', '["Technology"]', '["Spam"]', 'Open-minded', 'Single', '👑')
+      INSERT OR IGNORE INTO users (name, email, password, role, location, destination, age, bio, interests, adventures, likes, dislikes, religious_views, relationship_status, avatar, is_verified)
+      VALUES ('Admin Owner', 'admin@travelbuddies.com', '$2b$10$rZ5qH8vK9X.yJ3wN2pL4ZOxYvZ8qH8vK9X.yJ3wN2pL4ZOxYvZ8qH', 'owner', 'Global', 'Everywhere', 30, 'Platform administrator', '["Management", "Travel"]', '["World Tour"]', '["Technology"]', '["Spam"]', 'Open-minded', 'Single', '👑', 1)
     `);
+        db.run(`UPDATE users SET is_verified = 1 WHERE email = 'admin@travelbuddies.com'`);
 
         // Create trips table
         db.run(`
